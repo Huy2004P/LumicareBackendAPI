@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package doctor;
+
+service DoctorService {
+  // Tạo bác sĩ
+  rpc CreateDoctor (CreateDoctorRequest) returns (DoctorResponse);
+
+  // Lấy danh sách
+  rpc GetAllDoctors (DoctorFilter) returns (DoctorListResponse);
+  
+  // Xem chi tiết (SỬA LẠI DÒNG NÀY CHO ĐÚNG)
+  rpc GetDoctorById (DoctorIdRequest) returns (DoctorResponse);
+}
+
+message DoctorIdRequest { int32 id = 1; }
+
+message CreateDoctorRequest {
+  string email = 1;
+  string password = 2;
+  string fullName = 3;
+  string phone = 4;
+  string position = 5;
+  string description = 6;
+  double price = 7;
+  string avatar = 8;
+  int32 specialtyId = 9;
+  int32 roomId = 10;
+}
+
+message DoctorFilter {
+  string searchTerm = 1;
+  int32 specialtyId = 2;
+  int32 roomId = 3;
+}
+
+message DoctorResponse {
+  int32 id = 1;
+  string fullName = 2;
+  string email = 3;
+  string phone = 4;
+  string position = 5;
+  string description = 6;
+  double price = 7;
+  string avatar = 8;
+  string specialtyName = 9;
+  string roomName = 10;
+  string clinicName = 11;
+  bool active = 12;
+}
+
+message DoctorListResponse { repeated DoctorResponse doctors = 1; }

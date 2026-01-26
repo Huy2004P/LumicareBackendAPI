@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package master_data;
+
+service MasterDataService {
+    //Chuyen Khoa (Specialty)
+    rpc CreateSpecialty(CreateSpecialtyRequest) returns (SpecialtyResponse);
+    rpc UpdateSpecialty(UpdateSpecialtyRequest) returns (SpecialtyResponse);
+    rpc DeleteSpecialty(DeleteRequest) returns (StatusResponse);
+    rpc GetSpecialtyById(GetByIdRequest) returns (SpecialtyResponse);
+    rpc GetAllSpecialties (SearchRequest) returns (SpecialtyListResponse);
+
+    //Co So/ Benh Vien (Clinic)
+    rpc CreateClinic (CreateClinicRequest) returns (ClinicResponse);
+    rpc UpdateClinic (UpdateClinicRequest) returns (ClinicResponse);
+    rpc DeleteClinic (DeleteRequest) returns (StatusResponse);
+    rpc GetClinicById (GetByIdRequest) returns (ClinicResponse);
+    rpc GetAllClinics (SearchRequest) returns (ClinicListResponse);
+
+    //Phong kham cu the (Room)
+    rpc CreateRoom (CreateRoomRequest) returns (RoomResponse);
+    rpc UpdateRoom (UpdateRoomRequest) returns (RoomResponse);
+    rpc DeleteRoom (DeleteRequest) returns (StatusResponse);
+    rpc GetAllRooms (RoomFilterRequest) returns (RoomListResponse);
+
+    //Dich vu (Service)
+    rpc CreateService (CreateServiceRequest) returns (ServiceResponse);
+    rpc UpdateService (UpdateServiceRequest) returns (ServiceResponse);
+    rpc DeleteService (DeleteRequest) returns (StatusResponse);
+    rpc GetAllServices (SearchRequest) returns (ServiceListResponse);
+
+    //Thuoc (Drugs)
+    rpc CreateDrug (CreateDrugRequest) returns (DrugResponse);
+    rpc UpdateDrug (UpdateDrugRequest) returns (DrugResponse);
+    rpc DeleteDrug (DeleteRequest) returns (StatusResponse);
+    rpc GetDrugById (GetByIdRequest) returns (DrugResponse);
+    rpc GetAllDrugs (SearchRequest) returns (DrugListResponse);
+
+    // 6. ALLCODES (QUAN TRỌNG: Dùng cho TimeSlot, Position, Gender, Status...)
+    rpc CreateAllCode (CreateAllCodeRequest) returns (AllCodeResponse);
+    rpc UpdateAllCode (UpdateAllCodeRequest) returns (AllCodeResponse);
+    rpc DeleteAllCode (DeleteRequest) returns (StatusResponse);
+    rpc GetAllCodes (GetAllCodesRequest) returns (AllCodeListResponse);
+}
+
+message Empty {}
+message StatusResponse { bool success = 1; string message = 2; }
+
+message GetByIdRequest {
+  int32 id = 1;
+}
+
+message DeleteRequest {
+  int32 id = 1;
+}
+
+message SearchRequest {
+  string keyword = 1; // Tìm theo tên
+  int32 limit = 2;    // Số lượng bản ghi (VD: 10)
+  int32 offset = 3;   // Vị trí bắt đầu (VD: 0)
+}
+
+
+//Chuyen Khoa
+message CreateSpecialtyRequest { string name = 1; string description = 2; string image = 3; string content_html = 4; string content_markdown = 5; }
+message UpdateSpecialtyRequest {int32 id = 1; string name = 2; string description = 3; string image = 4; string content_html = 5; string content_markdown = 6; }
+message SpecialtyResponse { int32 id = 1; string name = 2; string description = 3; string image = 4; string content_html = 5; }
+message SpecialtyListResponse { repeated SpecialtyResponse data = 1; int32 total_count = 2; }
+
+//Co so/ Benh vien
+message CreateClinicRequest { string name = 1; string address = 2; string description = 3; string image = 4; string type = 5; }
+message UpdateClinicRequest { int32 id = 1; string name = 2; string address = 3; string description = 4; string image = 5;}
+message ClinicResponse { int32 id = 1; string name = 2; string address = 3; string description = 4; string image = 5; }
+message ClinicListResponse { repeated ClinicResponse data = 1; int32 total_count = 2; }
+
+//Phong kham cu the
+message CreateRoomRequest { string name = 1; int32 clinicId = 2; string location = 3; string description = 4; }
+message UpdateRoomRequest { int32 id = 1; string name = 2; string location = 3; string description = 4; }
+message RoomResponse { int32 id = 1; string name = 2; string clinicName = 3; int32 clinicId = 4; string location = 5; string description = 6; }
+message RoomFilterRequest { int32 clinicId = 1; string keyword = 2; }
+message RoomListResponse { repeated RoomResponse data = 1; }
+
+//Dich vu
+message CreateServiceRequest { string name = 1; double price = 2; string description = 3; string image = 4; }
+message UpdateServiceRequest { int32 id = 1; string name = 2; double price = 3; string description = 4; string image = 5; }
+message ServiceResponse { int32 id = 1; string name = 2; double price = 3; string description = 4; string image = 5; }
+message ServiceListResponse { repeated ServiceResponse data = 1; int32 total_count = 2; }
+
+//Thuoc
+message CreateDrugRequest { string name = 1; string unit = 2; double price = 3; string description = 4; string content_html = 5; string content_markdown = 6; }
+message UpdateDrugRequest { int32 id = 1; string name = 2; string unit = 3; double price = 4; string description = 5; string content_html = 6; string content_markdown = 7; }
+message DrugResponse { int32 id = 1; string name = 2; string unit = 3; double price = 4; string description = 5; string content_html = 6; string content_markdown = 7; }
+message DrugListResponse { repeated DrugResponse data = 1; int32 total_count = 2; }
+
+//AllCodes
+message CreateAllCodeRequest { string type = 1; string key = 2; string value_vi = 3;  string value_en = 4; }
+message UpdateAllCodeRequest { int32 id = 1; string type = 2; string key = 3; string value_vi = 4;  string value_en = 5; }
+message AllCodeResponse { int32 id = 1; string type = 2; string key = 3; string value_vi = 4; string value_en = 5; }
+message GetAllCodesRequest { string type = 1; }
+message AllCodeListResponse { repeated AllCodeResponse data = 1; }
