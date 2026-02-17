@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package statistic;
+
+service StatisticService {
+  // 1. Thống kê doanh thu/số lượng theo tháng (Dành cho Admin)
+  rpc GetAdminDashboard (DashboardRequest) returns (AdminDashboardResponse);
+
+  // 2. Thống kê cho Bác sĩ (Số khách hôm nay, tuần này...)
+  rpc GetDoctorDashboard (DashboardRequest) returns (DoctorDashboardResponse);
+}
+
+message DashboardRequest {
+  string from_date = 1; // 2024-01-01
+  string to_date = 2;   // 2024-01-31
+  int32 doctor_id = 3;  // Nếu là bác sĩ xem
+}
+
+message AdminDashboardResponse {
+  int32 total_doctors = 1;
+  int32 total_patients = 2;
+  int32 total_bookings = 3;
+  double total_revenue = 4; // Tổng tiền
+  repeated ChartData revenue_by_month = 5;
+}
+
+message DoctorDashboardResponse {
+  int32 total_patients_today = 1;
+  int32 pending_bookings = 2;
+  int32 completed_bookings = 3;
+  double total_revenue = 4;
+}
+
+message ChartData {
+  string label = 1; // "Tháng 1", "Tháng 2"
+  double value = 2;
+}

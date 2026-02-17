@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package appointment;
+
+service AppointmentService {
+  // 1. Bác sĩ lấy danh sách bệnh nhân đặt lịch theo ngày
+  rpc GetListPatientForDoctor (GetListPatientRequest) returns (ListPatientResponse);
+
+  // 2. Bác sĩ xác nhận lịch khám (Gửi kèm ảnh hóa đơn/kết quả nếu cần)
+  rpc VerifyBooking (VerifyBookingRequest) returns (VerifyResponse);
+  
+  // 3. Bác sĩ hoàn tất khám (Ghi bệnh án + Kê đơn) - Sẽ làm ở bước sau
+  rpc FinishAppointment (FinishAppointmentRequest) returns (FinishResponse);
+}
+
+message GetListPatientRequest {
+  int32 doctor_id = 1;
+  string date = 2; // YYYY-MM-DD (Timestamp dạng string)
+}
+
+message PatientBookingItem {
+  int32 booking_id = 1;
+  int32 patient_id = 2;
+  string patient_name = 3;
+  string phone_number = 4;
+  string time_type = 5;
+  string time_display = 6;
+  string reason = 7;
+  string status = 8; // pending, confirmed...
+  string gender = 9;
+  string birthday = 10;
+  string address = 11;
+}
+
+message ListPatientResponse {
+  bool success = 1;
+  string message = 2;
+  repeated PatientBookingItem data = 3;
+}
+
+message VerifyBookingRequest {
+  int32 doctor_id = 1;
+  int32 booking_id = 2;
+  string status = 3;
+}
+
+message VerifyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message MedicineItem {
+  int32 drug_id = 1;
+  int32 quantity = 2;
+  string instruction = 3;
+}
+
+message FinishAppointmentRequest {
+  int32 doctor_id = 1;
+  int32 booking_id = 2;       
+  string symptoms = 3;        
+  string diagnosis = 4;       
+  string treatment_plan = 5;  
+  repeated MedicineItem medicines = 6;
+  repeated TreatmentItem treatments = 7;
+}
+
+message TreatmentItem {
+  string name = 1;        // Tên liệu trình (VD: Châm cứu)
+  string times = 2;       // Số lần (VD: 2 lần/ngày)
+  string instruction = 3; // Hướng dẫn (VD: Sau ăn)
+  string repeat_days = 4; // Nhắc lại (VD: Sau 1 tuần)
+}
+
+message FinishResponse {
+  bool success = 1;
+  string message = 2;
+  int32 record_id = 3;
+}

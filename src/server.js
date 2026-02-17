@@ -8,6 +8,9 @@ const authHandler = require("./handlers/auth.handler");
 const profileHandler = require("./handlers/profile.handler");
 const masterHandler = require("./handlers/master_data.handler");
 const doctorHandler = require("./handlers/doctor.handler");
+const scheduleHandler = require("./handlers/schedule.handler");
+const bookingHandler = require("./handlers/booking.handler");
+const appointmentHandler = require("./handlers/appointment.handler");
 
 // 2. Import Interceptor (Để bảo vệ API cần đăng nhập)
 // Đảm bảo bạn đã tạo file này trong src/utils/grpc.interceptor.js
@@ -60,47 +63,48 @@ server.addService(profilePackage.ProfileService.service, {
 
 // 3. MASTER - DATA
 // Load file src/protos/master_data.proto
+// --- 3. MASTER - DATA ---
 const masterPackage = loadProto("master_data.proto").master_data;
 
 server.addService(masterPackage.MasterDataService.service, {
-  // --- 1. CHUYÊN KHOA (SPECIALTY) ---
-  CreateSpecialty: masterHandler.CreateSpecialty,
-  UpdateSpecialty: masterHandler.UpdateSpecialty,
-  DeleteSpecialty: masterHandler.DeleteSpecialty,
-  GetSpecialtyById: masterHandler.GetSpecialtyById,
-  GetAllSpecialties: masterHandler.GetAllSpecialties,
+  // --- 1. CHUYÊN KHOA ---
+  CreateSpecialty: masterHandler.createSpecialty,
+  UpdateSpecialty: masterHandler.updateSpecialty,
+  DeleteSpecialty: masterHandler.deleteSpecialty,
+  GetSpecialtyById: masterHandler.getSpecialtyById,
+  GetAllSpecialties: masterHandler.getAllSpecialties,
 
-  // --- 2. CƠ SỞ Y TẾ (CLINIC) ---
-  CreateClinic: masterHandler.CreateClinic,
-  UpdateClinic: masterHandler.UpdateClinic,
-  DeleteClinic: masterHandler.DeleteClinic,
-  GetClinicById: masterHandler.GetClinicById,
-  GetAllClinics: masterHandler.GetAllClinics,
+  // --- 2. CƠ SỞ Y TẾ ---
+  CreateClinic: masterHandler.createClinic,
+  UpdateClinic: masterHandler.updateClinic,
+  DeleteClinic: masterHandler.deleteClinic,
+  GetClinicById: masterHandler.getClinicById,
+  GetAllClinics: masterHandler.getAllClinics,
 
-  // --- 3. PHÒNG KHÁM (ROOM) ---
-  CreateRoom: masterHandler.CreateRoom,
-  UpdateRoom: masterHandler.UpdateRoom,
-  DeleteRoom: masterHandler.DeleteRoom,
-  GetAllRooms: masterHandler.GetAllRooms,
+  // --- 3. PHÒNG KHÁM ---
+  CreateRoom: masterHandler.createRoom,
+  UpdateRoom: masterHandler.updateRoom,
+  DeleteRoom: masterHandler.deleteRoom,
+  GetAllRooms: masterHandler.getAllRooms,
 
-  // --- 4. DỊCH VỤ (SERVICE) ---
-  CreateService: masterHandler.CreateService,
-  UpdateService: masterHandler.UpdateService,
-  DeleteService: masterHandler.DeleteService,
-  GetAllServices: masterHandler.GetAllServices,
+  // --- 4. DỊCH VỤ ---
+  CreateService: masterHandler.createService,
+  UpdateService: masterHandler.updateService,
+  DeleteService: masterHandler.deleteService,
+  GetAllServices: masterHandler.getAllServices,
 
-  // --- 5. THUỐC (DRUGS) - MỚI HOÀN TOÀN ---
-  CreateDrug: masterHandler.CreateDrug,
-  UpdateDrug: masterHandler.UpdateDrug,
-  DeleteDrug: masterHandler.DeleteDrug,
-  GetDrugById: masterHandler.GetDrugById,
-  GetAllDrugs: masterHandler.GetAllDrugs,
+  // --- 5. THUỐC ---
+  CreateDrug: masterHandler.createDrug,
+  UpdateDrug: masterHandler.updateDrug,
+  DeleteDrug: masterHandler.deleteDrug,
+  GetDrugById: masterHandler.getDrugById,
+  GetAllDrugs: masterHandler.getAllDrugs,
 
-  // --- 6. ALLCODES (MÃ CHUNG) - MỚI HOÀN TOÀN ---
-  CreateAllCode: masterHandler.CreateAllCode,
-  UpdateAllCode: masterHandler.UpdateAllCode,
-  DeleteAllCode: masterHandler.DeleteAllCode,
-  GetAllCodes: masterHandler.GetAllCodes,
+  // --- 6. ALLCODES ---
+  CreateAllCode: masterHandler.createAllCode,
+  UpdateAllCode: masterHandler.updateAllCode,
+  DeleteAllCode: masterHandler.deleteAllCode,
+  GetAllCodes: masterHandler.getAllCodes, // <-- Sửa từ getAllCode thành getAllCodes cho khớp Handler
 });
 // 4. DOCTOR
 // Load file src/protos/doctor.proto
@@ -115,6 +119,29 @@ server.addService(doctorPackage.DoctorService.service, {
   //lay bac si theo id
   GetDoctorById: doctorHandler.getDoctorById,
 });
+// 5. SCHEDULE
+// Load file src/protos/schedule.proto
+const schedulePackage = loadProto("schedule.proto").schedule;
+server.addService(schedulePackage.ScheduleService.service, {
+  BulkCreateSchedule: scheduleHandler.BulkCreateSchedule,
+  GetScheduleByDate: scheduleHandler.GetScheduleByDate,
+});
+// 6. BOOKING
+// Load file src/protos/booking.proto
+const bookingPackage = loadProto("booking.proto").booking;
+server.addService(bookingPackage.BookingService.service, {
+  CreateBooking: bookingHandler.CreateBooking,
+  GetBookingHistory: bookingHandler.GetBookingHistory,
+  CancelBooking: bookingHandler.CancelBooking,
+});
+// 7. APPOINTMENT
+// Load file src/protos/appointment.proto
+const appointmentPackage = loadProto("appointment.proto").appointment;
+server.addService(appointmentPackage.AppointmentService.service, {
+  GetListPatientForDoctor: appointmentHandler.GetListPatientForDoctor,
+  VerifyBooking: appointmentHandler.VerifyBooking,
+  FinishAppointment: appointmentHandler.FinishAppointment,
+});
 // KHỞI ĐỘNG SERVER
 
 // gRPC thường chạy port 50051 (khác với 3000 của Web)
@@ -125,13 +152,9 @@ server.bindAsync(
   grpc.ServerCredentials.createInsecure(),
   (error, port) => {
     if (error) {
-      console.error("❌ Lỗi khởi động gRPC Server:", error);
+      console.error("Lỗi khởi động gRPC Server:", error);
       return;
     }
-    console.log(`🚀 gRPC Server đang chạy tại 0.0.0.0:${PORT}`);
-
-    // Lưu ý: Các phiên bản mới của @grpc/grpc-js tự động start sau khi bind,
-    // nhưng nếu dùng bản cũ hoặc muốn chắc chắn thì gọi dòng dưới:
-    // server.start();
+    console.log(`gRPC Server đang chạy tại 0.0.0.0:${PORT}`);
   },
 );

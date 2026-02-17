@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package patient_profile;
+
+service PatientProfileService {
+  // 1. Lấy danh sách hồ sơ của tôi (kèm filter nếu cần)
+  rpc GetAllProfiles (GetProfilesRequest) returns (GetProfilesResponse);
+  
+  // 2. Tạo hồ sơ mới (cho người thân)
+  rpc CreateProfile (CreateProfileRequest) returns (ProfileResponse);
+  
+  // 3. Sửa hồ sơ
+  rpc UpdateProfile (UpdateProfileRequest) returns (ProfileResponse);
+  
+  // 4. Xóa hồ sơ
+  rpc DeleteProfile (DeleteProfileRequest) returns (StatusResponse);
+
+  // 5. Lấy chi tiết 1 hồ sơ
+  rpc GetProfileById (GetByIdRequest) returns (ProfileResponse);
+}
+
+message StatusResponse { bool success = 1; string message = 2; }
+
+message GetByIdRequest { int32 id = 1; }
+
+message GetProfilesRequest { int32 user_id = 1; }
+
+message CreateProfileRequest {
+  int32 user_id = 1;
+  string full_name = 2;
+  string birthday = 3; // Timestamp hoặc string '2000-01-01'
+  string gender = 4;
+  string phone_number = 5;
+  string address = 6;
+  string relationship = 7; // Bố, Mẹ, Con...
+}
+
+message UpdateProfileRequest {
+  int32 id = 1;         
+  int32 user_id = 2;    
+  string full_name = 3;
+  string birthday = 4;
+  string gender = 5;
+  string phone_number = 6;
+  string address = 7;
+  string relationship = 8;
+}
+
+message DeleteProfileRequest { int32 id = 1; int32 user_id = 2; }
+
+message ProfileResponse {
+  int32 id = 1;
+  int32 user_id = 2;
+  string full_name = 3;
+  string birthday = 4;
+  string gender = 5;
+  string phone_number = 6;
+  string address = 7;
+  string relationship = 8;
+}
+
+message GetProfilesResponse {
+  bool success = 1;
+  repeated ProfileResponse data = 2;
+}

@@ -1,79 +1,71 @@
 const db = require("../config/database");
 
-class DoctorRepo {
-  //Tao moi bac si (danh cho admin)
+class DoctorRepository {
+  
+  // 1. Tạo Hồ sơ Bác sĩ (Chạy sau khi đã tạo User)
   async create(data) {
+    // Lưu ý: data ở đây đã được chuẩn hóa key (snake_case) từ Service gửi sang
     const sql = `
-      INSERT INTO doctors 
-      (user_id, full_name, phone, position, description, price, avatar, specialty_id, room_id, active) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO doctors (user_id, full_name, phone, position, description, 
+      price, avatar, specialty_id, room_id, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
     `;
-    await db.execute(sql, [
-      data.userId,
-      data.fullName,
-      data.phone,
-      data.position,
+    const [result] = await db.execute(sql, [
+      data.user_id, 
+      data.full_name, 
+      data.phone, 
+      data.position, 
       data.description,
-      data.price,
-      data.avatar,
-      data.specialtyId,
-      data.roomId,
+      data.price, 
+      data.avatar, 
+      data.specialty_id, 
+      data.room_id
     ]);
-
-    const [rows] = await db.execute(`
-      SELECT d.*, s.name as specialty_name, r.name as room_name, c.name as clinic_name
-      FROM doctors d
-      LEFT JOIN specialties s ON d.specialty_id = s.id
-      LEFT JOIN rooms r ON d.room_id = r.id
-      LEFT JOIN clinics c ON r.clinic_id = c.id
-      ORDER BY d.id DESC LIMIT 1
-    `);
-
-    return rows[0];
+    return result.insertId;
   }
 
-  // 2. lay danh sach bac si
-  async findAll(filter = {}) {
+  // 2. Lấy danh sách (Có Filter tìm kiếm)
+  async findAll(filter) {
+    // JOIN 4 bảng để lấy đầy đủ tên Chuyên khoa, Phòng, Phòng khám, Email
     let sql = `
       SELECT d.*, u.email, s.name as specialty_name, r.name as room_name, c.name as clinic_name
       FROM doctors d
-      JOIN users u ON d.user_id = u.id
+      LEFT JOIN users u ON d.user_id = u.id
       LEFT JOIN specialties s ON d.specialty_id = s.id
       LEFT JOIN rooms r ON d.room_id = r.id
       LEFT JOIN clinics c ON r.clinic_id = c.id
+      WHERE 1=1
     `;
-
     const params = [];
-    const conditions = [];
 
-    if (filter.specialtyId) {
-      conditions.push("d.specialty_id = ?");
-      params.push(filter.specialtyId);
-    }
-    // Lọc theo Room
-    if (filter.roomId) {
-      conditions.push("d.room_id = ?");
-      params.push(filter.roomId);
-    }
+    // Tìm theo tên
     if (filter.searchTerm) {
-      conditions.push("d.full_name LIKE ?");
+      sql += " AND d.full_name LIKE ?";
       params.push(`%${filter.searchTerm}%`);
     }
+    // Tìm theo chuyên khoa
+    if (filter.specialtyId > 0) {
+      sql += " AND d.specialty_id = ?";
+      params.push(filter.specialtyId);
+    }
+    // Tìm theo phòng
+    if (filter.roomId > 0) {
+      sql += " AND d.room_id = ?";
+      params.push(filter.roomId);
+    }
 
-    if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
-
-    sql += " ORDER BY d.id DESC";
+    sql += " ORDER BY d.created_at DESC";
 
     const [rows] = await db.execute(sql, params);
     return rows;
   }
 
-  // 3. xem chi tiet bac si
+  // 3. Lấy chi tiết 1 bác sĩ
   async findById(id) {
     const sql = `
       SELECT d.*, u.email, s.name as specialty_name, r.name as room_name, c.name as clinic_name
       FROM doctors d
-      JOIN users u ON d.user_id = u.id
+      LEFT JOIN users u ON d.user_id = u.id
       LEFT JOIN specialties s ON d.specialty_id = s.id
       LEFT JOIN rooms r ON d.room_id = r.id
       LEFT JOIN clinics c ON r.clinic_id = c.id
@@ -84,4 +76,4 @@ class DoctorRepo {
   }
 }
 
-module.exports = new DoctorRepo();
+module.exports = new DoctorRepository();

@@ -1,179 +1,177 @@
-const repo = require("../repositories/master_data.repo");
-
-// Helper: Hàm bọc lỗi chung để code ngắn gọn, đỡ viết try/catch lặp lại
-const safeCall = async (callback, func) => {
-  try {
-    const result = await func();
-    callback(null, result);
-  } catch (error) {
-    console.error("GRPC Error:", error.message);
-    callback({
-      code: 13, // INTERNAL_ERROR
-      message: error.message || "Lỗi Server nội bộ",
-    });
-  }
-};
+const service = require('../services/masterData.service');
 
 module.exports = {
-  // =========================================================
-  // 1. CHUYÊN KHOA (SPECIALTY)
-  // =========================================================
-  CreateSpecialty: (call, callback) => {
-    safeCall(callback, () => repo.createSpecialty(call.request));
-  },
-
-  UpdateSpecialty: (call, callback) => {
-    safeCall(callback, () => repo.updateSpecialty(call.request));
-  },
-
-  DeleteSpecialty: async (call, callback) => {
+  // --- 1. SPECIALTY ---
+  createSpecialty: async (call, callback) => {
     try {
-      await repo.deleteSpecialty(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.createSpecialty(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetSpecialtyById: (call, callback) => {
-    safeCall(callback, () => repo.getSpecialtyById(call.request.id));
-  },
-
-  GetAllSpecialties: (call, callback) => {
-    safeCall(callback, () => repo.getAllSpecialties(call.request));
-  },
-
-  // =========================================================
-  // 2. CƠ SỞ Y TẾ (CLINIC)
-  // =========================================================
-  CreateClinic: (call, callback) => {
-    safeCall(callback, () => repo.createClinic(call.request));
-  },
-
-  UpdateClinic: (call, callback) => {
-    safeCall(callback, () => repo.updateClinic(call.request));
-  },
-
-  DeleteClinic: async (call, callback) => {
+  updateSpecialty: async (call, callback) => {
     try {
-      await repo.deleteClinic(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.updateSpecialty(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetClinicById: (call, callback) => {
-    safeCall(callback, () => repo.getClinicById(call.request.id));
-  },
-
-  GetAllClinics: (call, callback) => {
-    safeCall(callback, () => repo.getAllClinics(call.request));
-  },
-
-  // =========================================================
-  // 3. PHÒNG KHÁM (ROOM)
-  // =========================================================
-  CreateRoom: (call, callback) => {
-    safeCall(callback, () => repo.createRoom(call.request));
-  },
-
-  UpdateRoom: (call, callback) => {
-    safeCall(callback, () => repo.updateRoom(call.request));
-  },
-
-  DeleteRoom: async (call, callback) => {
+  deleteSpecialty: async (call, callback) => {
     try {
-      await repo.deleteRoom(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteSpecialty(call.request.id);
+      callback(null, { success: result, message: "Deleted successfully" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetAllRooms: (call, callback) => {
-    safeCall(callback, async () => {
-      const data = await repo.getAllRooms(call.request);
-      return { data }; // Wrap vào object { data: [] } cho khớp proto RoomListResponse
-    });
-  },
-
-  // =========================================================
-  // 4. DỊCH VỤ (SERVICE)
-  // =========================================================
-  CreateService: (call, callback) => {
-    safeCall(callback, () => repo.createService(call.request));
-  },
-
-  UpdateService: (call, callback) => {
-    safeCall(callback, () => repo.updateService(call.request));
-  },
-
-  DeleteService: async (call, callback) => {
+  getSpecialtyById: async (call, callback) => {
     try {
-      await repo.deleteService(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.getSpecialtyById(call.request.id);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetAllServices: (call, callback) => {
-    safeCall(callback, () => repo.getAllServices(call.request));
-  },
-
-  // =========================================================
-  // 5. THUỐC (DRUGS) - MỚI
-  // =========================================================
-  CreateDrug: (call, callback) => {
-    safeCall(callback, () => repo.createDrug(call.request));
-  },
-
-  UpdateDrug: (call, callback) => {
-    safeCall(callback, () => repo.updateDrug(call.request));
-  },
-
-  DeleteDrug: async (call, callback) => {
+  getAllSpecialties: async (call, callback) => {
     try {
-      await repo.deleteDrug(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.getAllSpecialties();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetDrugById: (call, callback) => {
-    safeCall(callback, () => repo.getDrugById(call.request.id));
-  },
-
-  GetAllDrugs: (call, callback) => {
-    safeCall(callback, () => repo.getAllDrugs(call.request));
-  },
-
-  // =========================================================
-  // 6. ALLCODES (MÃ CHUNG) - MỚI
-  // =========================================================
-  CreateAllCode: (call, callback) => {
-    safeCall(callback, () => repo.createAllCode(call.request));
-  },
-
-  UpdateAllCode: (call, callback) => {
-    safeCall(callback, () => repo.updateAllCode(call.request));
-  },
-
-  DeleteAllCode: async (call, callback) => {
+  // --- 2. CLINIC ---
+  createClinic: async (call, callback) => {
     try {
-      await repo.deleteAllCode(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.createClinic(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  updateClinic: async (call, callback) => {
+    try {
+      const result = await service.updateClinic(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  deleteClinic: async (call, callback) => {
+    try {
+      const result = await service.deleteClinic(call.request.id);
+      callback(null, { success: result, message: "Deleted successfully" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getClinicById: async (call, callback) => {
+    try {
+      const result = await service.getClinicById(call.request.id);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getAllClinics: async (call, callback) => {
+    try {
+      const result = await service.getAllClinics();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetAllCodes: (call, callback) => {
-    safeCall(callback, async () => {
-      // Hàm repo.getAllCodes trả về { data: [...] } nên return thẳng luôn
-      return await repo.getAllCodes(call.request.type);
-    });
+  // --- 3. ROOM ---
+  createRoom: async (call, callback) => {
+    try {
+      const result = await service.createRoom(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
+  updateRoom: async (call, callback) => {
+    try {
+      const result = await service.updateRoom(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  deleteRoom: async (call, callback) => {
+    try {
+      const result = await service.deleteRoom(call.request.id);
+      callback(null, { success: result, message: "Deleted successfully" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getAllRooms: async (call, callback) => {
+    try {
+      const result = await service.getAllRooms(call.request.clinicId);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+
+  // --- 4. SERVICE ---
+  createService: async (call, callback) => {
+    try {
+      const result = await service.createService(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  updateService: async (call, callback) => {
+    try {
+      const result = await service.updateService(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  deleteService: async (call, callback) => {
+    try {
+      const result = await service.deleteService(call.request.id);
+      callback(null, { success: result, message: "Deleted successfully" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getAllServices: async (call, callback) => {
+    try {
+      const result = await service.getAllServices();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+
+  // --- 5. DRUG ---
+  createDrug: async (call, callback) => {
+    try {
+      const result = await service.createDrug(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  updateDrug: async (call, callback) => {
+    try {
+      const result = await service.updateDrug(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  deleteDrug: async (call, callback) => {
+    try {
+      const result = await service.deleteDrug(call.request.id);
+      callback(null, { success: result, message: "Deleted successfully" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getDrugById: async (call, callback) => {
+    try {
+      const result = await service.getDrugById(call.request.id);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getAllDrugs: async (call, callback) => {
+    try {
+      const result = await service.getAllDrugs();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+
+  // --- 6. ALLCODES ---
+  createAllCode: async (call, callback) => {
+    try {
+      const result = await service.createAllCode(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  updateAllCode: async (call, callback) => {
+    try {
+      const result = await service.updateAllCode(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  deleteAllCode: async (call, callback) => {
+    try {
+      const result = await service.deleteAllCode(call.request.id);
+      callback(null, { success: result, message: "Deleted successfully" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  getAllCodes: async (call, callback) => {
+    try {
+      const result = await service.getAllCodes(call.request.type);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  }
 };

@@ -1,50 +1,61 @@
 const doctorService = require("../services/doctor.service");
 
-// Helper function de map du lieu tu DB sang proto
-const mapDoctorToResponse = (d) => ({
+// Hàm bọc lỗi (Try/Catch)
+const safeCall = async (callback, func) => {
+  try {
+    const result = await func();
+    callback(null, result);
+  } catch (error) {
+    console.error("Doctor Handler Error:", error);
+    callback({ code: 13, message: error.message || "Lỗi Server" });
+  }
+};
+
+// Hàm Helper: Chuyển đổi dữ liệu DB (snake_case) thành Proto (camelCase)
+const mapToProto = (d) => ({
   id: d.id,
-  fullName: d.full_name,
-  email: d.email,
-  phone: d.phone,
-  position: d.position,
-  description: d.description,
-  price: d.price,
-  avatar: d.avatar,
-  specialtyName: d.specialty_name || "",
-  roomName: d.room_name || "", // Moi
-  clinicName: d.clinic_name || "", // Moi
-  active: !!d.active, // Chuyen int 1/0 sang boolean
+  fullName: d.full_name,       // DB: full_name -> Proto: fullName
+  email: d.email || "",        // Lấy từ bảng users (đã join)
+  phone: d.phone || "",
+  position: d.position || "",
+  description: d.description || "",
+  price: d.price || 0,
+  avatar: d.avatar || "",
+  specialtyName: d.specialty_name || "", // Lấy từ bảng specialties
+  roomName: d.room_name || "",           // Lấy từ bảng rooms
+  clinicName: d.clinic_name || "",       // Lấy từ bảng clinics
+  active: d.active === 1
 });
 
-//tao bac si
-const createDoctor = async (call, callback) => {
-  try {
-    const result = await doctorService.createDoctor(call.request);
-    callback(null, mapDoctorToResponse(result));
-  } catch (error) {
-    console.error("Error:", error.message);
-    callback({ code: 13, details: error.message });
+module.exports = {
+  // 1. Tạo bác sĩ
+  CreateDoctor: (call, callback) => {
+    safeCall(callback, async () => {
+      // call.request chứa: email, password, fullName, specialtyId...
+      const newDoctor = await doctorService.createDoctor(call.request);
+      
+      // Map kết quả trả về đúng định dạng DoctorResponse
+      return mapToProto(newDoctor);
+    });
+  },
+
+  // 2. Lấy danh sách
+  GetAllDoctors: (call, callback) => {
+    safeCall(callback, async () => {
+      // call.request chứa: searchTerm, specialtyId...
+      const doctors = await doctorService.getAllDoctors(call.request);
+      
+      return { 
+        doctors: doctors.map(mapToProto) 
+      };
+    });
+  },
+
+  // 3. Lấy chi tiết
+  GetDoctorById: (call, callback) => {
+    safeCall(callback, async () => {
+      const doctor = await doctorService.getDoctorById(call.request.id);
+      return mapToProto(doctor);
+    });
   }
 };
-
-//lay toan bo bac si
-const getAllDoctors = async (call, callback) => {
-  try {
-    const doctors = await doctorService.getAllDoctors(call.request);
-    callback(null, { doctors: doctors.map(mapDoctorToResponse) });
-  } catch (error) {
-    callback({ code: 13, details: error.message });
-  }
-};
-
-//lay bac si theo id
-const getDoctorById = async (call, callback) => {
-  try {
-    const doctor = await doctorService.getDoctorById(call.request.id);
-    callback(null, mapDoctorToResponse(doctor));
-  } catch (error) {
-    callback({ code: 5, details: error.message });
-  }
-};
-
-module.exports = { createDoctor, getAllDoctors, getDoctorById };
