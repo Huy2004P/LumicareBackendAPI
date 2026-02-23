@@ -68,43 +68,46 @@ const masterPackage = loadProto("master_data.proto").master_data;
 
 server.addService(masterPackage.MasterDataService.service, {
   // --- 1. CHUYÊN KHOA ---
-  CreateSpecialty: masterHandler.createSpecialty,
-  UpdateSpecialty: masterHandler.updateSpecialty,
-  DeleteSpecialty: masterHandler.deleteSpecialty,
-  GetSpecialtyById: masterHandler.getSpecialtyById,
-  GetAllSpecialties: masterHandler.getAllSpecialties,
+  CreateSpecialty: masterHandler.CreateSpecialty,
+  UpdateSpecialty: masterHandler.UpdateSpecialty,
+  DeleteSpecialty: masterHandler.DeleteSpecialty,
+  GetSpecialtyById: masterHandler.GetSpecialtyById,
+  GetAllSpecialties: masterHandler.GetAllSpecialties,
 
   // --- 2. CƠ SỞ Y TẾ ---
-  CreateClinic: masterHandler.createClinic,
-  UpdateClinic: masterHandler.updateClinic,
-  DeleteClinic: masterHandler.deleteClinic,
-  GetClinicById: masterHandler.getClinicById,
-  GetAllClinics: masterHandler.getAllClinics,
+  CreateClinic: masterHandler.CreateClinic,
+  UpdateClinic: masterHandler.UpdateClinic,
+  DeleteClinic: masterHandler.DeleteClinic,
+  GetClinicById: masterHandler.GetClinicById,
+  GetAllClinics: masterHandler.GetAllClinics,
 
   // --- 3. PHÒNG KHÁM ---
-  CreateRoom: masterHandler.createRoom,
-  UpdateRoom: masterHandler.updateRoom,
-  DeleteRoom: masterHandler.deleteRoom,
-  GetAllRooms: masterHandler.getAllRooms,
+  CreateRoom: masterHandler.CreateRoom,
+  UpdateRoom: masterHandler.UpdateRoom,
+  DeleteRoom: masterHandler.DeleteRoom,
+  GetRoomById: masterHandler.GetRoomById,      // <-- BỔ SUNG DÒNG NÀY
+  GetAllRooms: masterHandler.GetAllRooms,
 
   // --- 4. DỊCH VỤ ---
-  CreateService: masterHandler.createService,
-  UpdateService: masterHandler.updateService,
-  DeleteService: masterHandler.deleteService,
-  GetAllServices: masterHandler.getAllServices,
+  CreateService: masterHandler.CreateService,
+  UpdateService: masterHandler.UpdateService,
+  DeleteService: masterHandler.DeleteService,
+  GetServiceById: masterHandler.GetServiceById,   // <-- BỔ SUNG DÒNG NÀY
+  GetAllServices: masterHandler.GetAllServices,
 
   // --- 5. THUỐC ---
-  CreateDrug: masterHandler.createDrug,
-  UpdateDrug: masterHandler.updateDrug,
-  DeleteDrug: masterHandler.deleteDrug,
-  GetDrugById: masterHandler.getDrugById,
-  GetAllDrugs: masterHandler.getAllDrugs,
+  CreateDrug: masterHandler.CreateDrug,
+  UpdateDrug: masterHandler.UpdateDrug,
+  DeleteDrug: masterHandler.DeleteDrug,
+  GetDrugById: masterHandler.GetDrugById,
+  GetAllDrugs: masterHandler.GetAllDrugs,
 
   // --- 6. ALLCODES ---
-  CreateAllCode: masterHandler.createAllCode,
-  UpdateAllCode: masterHandler.updateAllCode,
-  DeleteAllCode: masterHandler.deleteAllCode,
-  GetAllCodes: masterHandler.getAllCodes, // <-- Sửa từ getAllCode thành getAllCodes cho khớp Handler
+  CreateAllCode: masterHandler.CreateAllCode,
+  UpdateAllCode: masterHandler.UpdateAllCode,
+  DeleteAllCode: masterHandler.DeleteAllCode,
+  GetAllCodeById: masterHandler.GetAllCodeById,  // <-- BỔ SUNG DÒNG NÀY
+  GetAllCodes: masterHandler.GetAllCodes, 
 });
 // 4. DOCTOR
 // Load file src/protos/doctor.proto

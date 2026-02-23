@@ -1,32 +1,43 @@
 const service = require('../services/masterData.service');
 
+// Helper để kiểm tra dữ liệu tồn tại
+const handleSingleResponse = (callback, result, notFoundMsg) => {
+  if (!result) {
+    return callback({
+      code: 5, // gRPC NOT_FOUND
+      message: notFoundMsg || "Dữ liệu không tồn tại hoặc đã bị xóa"
+    });
+  }
+  callback(null, result);
+};
+
 module.exports = {
   // --- 1. SPECIALTY ---
-  createSpecialty: async (call, callback) => {
+  CreateSpecialty: async (call, callback) => {
     try {
       const result = await service.createSpecialty(call.request);
       callback(null, result);
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  updateSpecialty: async (call, callback) => {
+  UpdateSpecialty: async (call, callback) => {
     try {
       const result = await service.updateSpecialty(call.request);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Không tìm thấy Chuyên khoa để cập nhật");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  deleteSpecialty: async (call, callback) => {
+  DeleteSpecialty: async (call, callback) => {
     try {
       const result = await service.deleteSpecialty(call.request.id);
-      callback(null, { success: result, message: "Deleted successfully" });
+      callback(null, { success: result, message: "Xóa chuyên khoa thành công" });
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getSpecialtyById: async (call, callback) => {
+  GetSpecialtyById: async (call, callback) => {
     try {
       const result = await service.getSpecialtyById(call.request.id);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Chuyên khoa không tồn tại");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getAllSpecialties: async (call, callback) => {
+  GetAllSpecialties: async (call, callback) => {
     try {
       const result = await service.getAllSpecialties();
       callback(null, result);
@@ -34,31 +45,31 @@ module.exports = {
   },
 
   // --- 2. CLINIC ---
-  createClinic: async (call, callback) => {
+  CreateClinic: async (call, callback) => {
     try {
       const result = await service.createClinic(call.request);
       callback(null, result);
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  updateClinic: async (call, callback) => {
+  UpdateClinic: async (call, callback) => {
     try {
       const result = await service.updateClinic(call.request);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Không tìm thấy Cơ sở y tế để cập nhật");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  deleteClinic: async (call, callback) => {
+  DeleteClinic: async (call, callback) => {
     try {
       const result = await service.deleteClinic(call.request.id);
-      callback(null, { success: result, message: "Deleted successfully" });
+      callback(null, { success: result, message: "Xóa cơ sở y tế thành công" });
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getClinicById: async (call, callback) => {
+  GetClinicById: async (call, callback) => {
     try {
       const result = await service.getClinicById(call.request.id);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Cơ sở y tế không tồn tại");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getAllClinics: async (call, callback) => {
+  GetAllClinics: async (call, callback) => {
     try {
       const result = await service.getAllClinics();
       callback(null, result);
@@ -66,25 +77,31 @@ module.exports = {
   },
 
   // --- 3. ROOM ---
-  createRoom: async (call, callback) => {
+  CreateRoom: async (call, callback) => {
     try {
       const result = await service.createRoom(call.request);
       callback(null, result);
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  updateRoom: async (call, callback) => {
+  UpdateRoom: async (call, callback) => {
     try {
       const result = await service.updateRoom(call.request);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Không tìm thấy phòng để cập nhật");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  deleteRoom: async (call, callback) => {
+  DeleteRoom: async (call, callback) => {
     try {
       const result = await service.deleteRoom(call.request.id);
-      callback(null, { success: result, message: "Deleted successfully" });
+      callback(null, { success: result, message: "Xóa phòng thành công" });
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getAllRooms: async (call, callback) => {
+  GetRoomById: async (call, callback) => {
+    try {
+      const result = await service.getRoomById(call.request.id);
+      handleSingleResponse(callback, result, "Phòng khám không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllRooms: async (call, callback) => {
     try {
       const result = await service.getAllRooms(call.request.clinicId);
       callback(null, result);
@@ -92,25 +109,31 @@ module.exports = {
   },
 
   // --- 4. SERVICE ---
-  createService: async (call, callback) => {
+  CreateService: async (call, callback) => {
     try {
       const result = await service.createService(call.request);
       callback(null, result);
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  updateService: async (call, callback) => {
+  UpdateService: async (call, callback) => {
     try {
       const result = await service.updateService(call.request);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Không tìm thấy dịch vụ để cập nhật");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  deleteService: async (call, callback) => {
+  DeleteService: async (call, callback) => {
     try {
       const result = await service.deleteService(call.request.id);
-      callback(null, { success: result, message: "Deleted successfully" });
+      callback(null, { success: result, message: "Xóa dịch vụ thành công" });
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getAllServices: async (call, callback) => {
+  GetServiceById: async (call, callback) => {
+    try {
+      const result = await service.getServiceById(call.request.id);
+      handleSingleResponse(callback, result, "Dịch vụ không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllServices: async (call, callback) => {
     try {
       const result = await service.getAllServices();
       callback(null, result);
@@ -118,31 +141,31 @@ module.exports = {
   },
 
   // --- 5. DRUG ---
-  createDrug: async (call, callback) => {
+  CreateDrug: async (call, callback) => {
     try {
       const result = await service.createDrug(call.request);
       callback(null, result);
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  updateDrug: async (call, callback) => {
+  UpdateDrug: async (call, callback) => {
     try {
       const result = await service.updateDrug(call.request);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Không tìm thấy thuốc để cập nhật");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  deleteDrug: async (call, callback) => {
+  DeleteDrug: async (call, callback) => {
     try {
       const result = await service.deleteDrug(call.request.id);
-      callback(null, { success: result, message: "Deleted successfully" });
+      callback(null, { success: result, message: "Xóa thuốc thành công" });
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getDrugById: async (call, callback) => {
+  GetDrugById: async (call, callback) => {
     try {
       const result = await service.getDrugById(call.request.id);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Thuốc không tồn tại");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getAllDrugs: async (call, callback) => {
+  GetAllDrugs: async (call, callback) => {
     try {
       const result = await service.getAllDrugs();
       callback(null, result);
@@ -150,25 +173,31 @@ module.exports = {
   },
 
   // --- 6. ALLCODES ---
-  createAllCode: async (call, callback) => {
+  CreateAllCode: async (call, callback) => {
     try {
       const result = await service.createAllCode(call.request);
       callback(null, result);
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  updateAllCode: async (call, callback) => {
+  UpdateAllCode: async (call, callback) => {
     try {
       const result = await service.updateAllCode(call.request);
-      callback(null, result);
+      handleSingleResponse(callback, result, "Không tìm thấy mã code để cập nhật");
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  deleteAllCode: async (call, callback) => {
+  DeleteAllCode: async (call, callback) => {
     try {
       const result = await service.deleteAllCode(call.request.id);
-      callback(null, { success: result, message: "Deleted successfully" });
+      callback(null, { success: result, message: "Xóa mã code thành công" });
     } catch (e) { callback({ code: 13, message: e.message }); }
   },
-  getAllCodes: async (call, callback) => {
+  GetAllCodeById: async (call, callback) => {
+    try {
+      const result = await service.getAllCodeById(call.request.id);
+      handleSingleResponse(callback, result, "Mã code không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllCodes: async (call, callback) => {
     try {
       const result = await service.getAllCodes(call.request.type);
       callback(null, result);

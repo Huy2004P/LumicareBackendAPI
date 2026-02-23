@@ -35,6 +35,7 @@ message RegisterRequest {
   string password = 2;
   string fullName = 3;
   string phone = 4;
+  string role = 5;
 }
 
 message LoginRequest {

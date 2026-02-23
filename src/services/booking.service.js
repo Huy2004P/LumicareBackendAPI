@@ -28,6 +28,11 @@ class BookingService {
     }
     return true;
   }
+
+  async deleteBooking(bookingId) {
+    if (!bookingId) throw new Error("Thiếu ID lịch hẹn để xóa!");
+    return await bookingRepo.deleteBooking(bookingId);
+  }
 }
 
 module.exports = new BookingService();

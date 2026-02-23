@@ -3,11 +3,17 @@ syntax = "proto3";
 package booking;
 
 service BookingService {
+  // 1. Đặt lịch khám
   rpc CreateBooking (CreateBookingRequest) returns (BookingResponse);
   
+  // 2. Lấy lịch sử (Chỉ lấy những đơn is_deleted = 0)
   rpc GetBookingHistory (GetHistoryRequest) returns (HistoryResponse);
   
+  // 3. Hủy lịch (Dành cho Bệnh nhân - status sang 'cancelled' + hoàn slot)
   rpc CancelBooking (CancelBookingRequest) returns (BookingResponse);
+
+  // 4. Xóa ảo đơn hàng (Dành cho Admin - is_deleted sang 1)
+  rpc DeleteBooking (DeleteBookingRequest) returns (BookingResponse);
 }
 
 // --- MESSAGE ---
@@ -19,9 +25,9 @@ message BookingResponse {
 
 message CreateBookingRequest {
   int32 doctor_id = 1;
-  int32 patient_id = 2;      
-  int32 profile_id = 3;      
-  string date = 4;          
+  int32 patient_id = 2;       
+  int32 profile_id = 3;       
+  string date = 4;           
   string time_type = 5;      
   string reason = 6;       
   repeated string photos = 7;  
@@ -35,10 +41,10 @@ message BookingItem {
   int32 id = 1;
   string doctor_name = 2;
   string date = 3;
-  string time_display = 4;   // "8:00 - 9:00"
-  string status = 5;         // pending, confirmed, cancelled...
+  string time_display = 4; 
+  string status = 5;       
   string reason = 6;
-  string patient_name = 7;   // Tên người đi khám (Lấy từ Profile)
+  string patient_name = 7; 
 }
 
 message HistoryResponse {
@@ -47,6 +53,10 @@ message HistoryResponse {
 }
 
 message CancelBookingRequest {
-  int32 id = 1;         // ID booking
-  int32 patient_id = 2; // Check quyền chính chủ
+  int32 booking_id = 1; // Đổi id thành booking_id cho đồng bộ với response
+  int32 patient_id = 2;
+}
+
+message DeleteBookingRequest {
+  int32 booking_id = 1;
 }

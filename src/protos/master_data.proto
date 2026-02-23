@@ -21,12 +21,14 @@ service MasterDataService {
     rpc CreateRoom (CreateRoomRequest) returns (RoomResponse);
     rpc UpdateRoom (UpdateRoomRequest) returns (RoomResponse);
     rpc DeleteRoom (DeleteRequest) returns (StatusResponse);
+    rpc GetRoomById (GetByIdRequest) returns (RoomResponse); 
     rpc GetAllRooms (RoomFilterRequest) returns (RoomListResponse);
 
     // 4. Dich vu (Service)
     rpc CreateService (CreateServiceRequest) returns (ServiceResponse);
     rpc UpdateService (UpdateServiceRequest) returns (ServiceResponse);
     rpc DeleteService (DeleteRequest) returns (StatusResponse);
+    rpc GetServiceById (GetByIdRequest) returns (ServiceResponse); 
     rpc GetAllServices (SearchRequest) returns (ServiceListResponse);
 
     // 5. Thuoc (Drugs)
@@ -40,11 +42,11 @@ service MasterDataService {
     rpc CreateAllCode (CreateAllCodeRequest) returns (AllCodeResponse);
     rpc UpdateAllCode (UpdateAllCodeRequest) returns (AllCodeResponse);
     rpc DeleteAllCode (DeleteRequest) returns (StatusResponse);
+    rpc GetAllCodeById (GetByIdRequest) returns (AllCodeResponse); 
     rpc GetAllCodes (GetAllCodesRequest) returns (AllCodeListResponse);
 }
 
 // --- Common Messages ---
-message Empty {}
 message StatusResponse { bool success = 1; string message = 2; }
 message GetByIdRequest { int32 id = 1; }
 message DeleteRequest { int32 id = 1; }
@@ -114,7 +116,7 @@ message ClinicListResponse { repeated ClinicResponse data = 1; int32 total_count
 
 // --- 3. Room ---
 message CreateRoomRequest { string name = 1; int32 clinicId = 2; string location = 3; string description = 4; }
-message UpdateRoomRequest { int32 id = 1; string name = 2; string location = 3; string description = 4; }
+message UpdateRoomRequest { int32 id = 1; string name = 2; string location = 3; string description = 4; int32 clinicId = 5; }
 message RoomResponse { int32 id = 1; string name = 2; string clinicName = 3; int32 clinicId = 4; string location = 5; string description = 6; }
 message RoomFilterRequest { int32 clinicId = 1; string keyword = 2; }
 message RoomListResponse { repeated RoomResponse data = 1; }
