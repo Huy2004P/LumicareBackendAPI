@@ -121,23 +121,26 @@ message RoomResponse { int32 id = 1; string name = 2; string clinicName = 3; int
 message RoomFilterRequest { int32 clinicId = 1; string keyword = 2; }
 message RoomListResponse { repeated RoomResponse data = 1; }
 
-// --- 4. Service ---
+// --- 4. Service (Sửa lại tên biến cho khớp JSON Kreya) ---
 message CreateServiceRequest { 
     string name = 1; 
     double price = 2; 
-    string description = 3; 
-    string image = 4; 
-    string content_html = 5; 
-    string content_markdown = 6; 
+    int32 specialtyId = 3;
+    string description = 4; 
+    string image = 5; 
+    string contentHtml = 6;     // Đổi content_html -> contentHtml
+    string contentMarkdown = 7; // Đổi content_markdown -> contentMarkdown
 }
+
 message UpdateServiceRequest { 
     int32 id = 1; 
     string name = 2; 
     double price = 3; 
-    string description = 4; 
-    string image = 5; 
-    string content_html = 6; 
-    string content_markdown = 7; 
+    int32 specialtyId = 4;
+    string description = 5; 
+    string image = 6; 
+    string contentHtml = 7;     // Đổi content_html -> contentHtml
+    string contentMarkdown = 8; // Đổi content_markdown -> contentMarkdown
 }
 message ServiceResponse { 
     int32 id = 1; 

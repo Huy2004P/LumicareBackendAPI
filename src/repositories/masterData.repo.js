@@ -124,8 +124,16 @@ class MasterDataRepo {
   // 4. SERVICE (Gói dịch vụ)
   // ==========================================
   async createService(data) {
-    const sql = `INSERT INTO services (name, price, description, image, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, ?, 0)`;
-    const [result] = await db.execute(sql, [data.name || null, data.price || 0, data.description || null, data.image || null, data.content_html || null, data.content_markdown || null]);
+    const sql = `INSERT INTO services (name, price, specialty_id, description, image, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`;
+    const [result] = await db.execute(sql, [
+        data.name || null, 
+        data.price || 0, 
+        data.specialtyId || null, 
+        data.description || null, 
+        data.image || null, 
+        data.contentHtml || null, // Sửa từ content_html thành contentHtml
+        data.contentMarkdown || null // Sửa từ content_markdown thành contentMarkdown
+    ]);
     return this.getServiceById(result.insertId);
   }
 
@@ -134,14 +142,32 @@ class MasterDataRepo {
     return rows[0];
   }
 
+  async getServicesByIds(ids) {
+    if (!ids || ids.length === 0) return [];
+    // Biến mảng [1,2,3] thành chuỗi "1,2,3" để dùng lệnh IN trong SQL
+    const placeholders = ids.map(() => '?').join(',');
+    const sql = `SELECT id, name, specialty_id FROM services WHERE id IN (${placeholders}) AND is_deleted = 0`;
+    const [rows] = await db.execute(sql, ids);
+    return rows;
+  }
+
   async getAllServices() {
     const [rows] = await db.execute("SELECT * FROM services WHERE is_deleted = 0 ORDER BY id DESC");
     return { data: rows };
   }
 
   async updateService(data) {
-    const sql = `UPDATE services SET name=?, price=?, description=?, image=?, content_html=?, content_markdown=? WHERE id=? AND is_deleted = 0`;
-    await db.execute(sql, [data.name || null, data.price || 0, data.description || null, data.image || null, data.content_html || null, data.content_markdown || null, data.id]);
+    const sql = `UPDATE services SET name=?, price=?, specialty_id=?, description=?, image=?, content_html=?, content_markdown=? WHERE id=? AND is_deleted = 0`;
+    await db.execute(sql, [
+        data.name || null, 
+        data.price || 0, 
+        data.specialtyId || null, 
+        data.description || null, 
+        data.image || null, 
+        data.contentHtml || null,      // Khớp với camelCase từ Proto
+        data.contentMarkdown || null,  // Khớp với camelCase từ Proto
+        data.id
+    ]);
     return this.getServiceById(data.id);
   }
 

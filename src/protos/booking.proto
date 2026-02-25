@@ -30,7 +30,8 @@ message CreateBookingRequest {
   string date = 4;           
   string time_type = 5;      
   string reason = 6;       
-  repeated string photos = 7;  
+  repeated string photos = 7;
+  int32 service_id = 8; // Nếu đặt dịch vụ thì truyền cái này, không thì thôi
 }
 
 message GetHistoryRequest {
@@ -44,7 +45,9 @@ message BookingItem {
   string time_display = 4; 
   string status = 5;       
   string reason = 6;
-  string patient_name = 7; 
+  string patient_name = 7;
+  string service_name = 8; // Hiện tên dịch vụ (nếu có)
+  double price = 9;        // Hiện giá tiền đã đặt
 }
 
 message HistoryResponse {

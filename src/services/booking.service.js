@@ -1,38 +1,43 @@
 const bookingRepo = require("../repositories/booking.repo");
+const profileRepo = require("../repositories/patientProfile.repo");
 
 class BookingService {
-  
   async createBooking(data) {
-    // Validate cơ bản
-    if (!data.doctor_id || !data.patient_id || !data.date || !data.time_type) {
-      throw new Error("Thiếu thông tin đặt lịch!");
+    const inputId = data.patient_id || data.patientId;
+    
+    // 1. Thử tìm PatientId thông qua UserId (Dành cho App truyền UserId lên)
+    let actualPatientId = await profileRepo.getPatientIdByUserId(inputId);
+    
+    // 2. Nếu không tìm thấy (có thể ông đang truyền trực tiếp PatientId từ Kreya)
+    // Thì dùng luôn cái inputId đó để đặt lịch
+    if (!actualPatientId) {
+        actualPatientId = inputId;
     }
 
-    // Gọi Transaction bên Repo
-    const bookingId = await bookingRepo.createBookingTransaction(data);
-    
-    // (Optional) Sau này có thể thêm logic gửi Email xác nhận ở đây
-    
-    return bookingId;
+    return await bookingRepo.createBookingTransaction({ 
+      ...data, 
+      patient_id: actualPatientId 
+    });
   }
 
+  // BookingService.js
   async getHistory(patientId) {
-    if (!patientId) throw new Error("Thiếu ID bệnh nhân!");
-    return await bookingRepo.getHistory(patientId);
+      const res = await bookingRepo.getHistory(patientId);
+
+      if (!res || res.length === 0) {
+        // Ném lỗi thẳng về Controller để hiện bảng đỏ bên Kreya
+        throw new Error(`Bệnh nhân ID ${patientId} không tồn tại hoặc chưa có lịch sử khám!`);
+      }
+
+      return res;
   }
 
   async cancelBooking(bookingId, patientId) {
-    const isCancelled = await bookingRepo.cancelBooking(bookingId, patientId);
-    if (!isCancelled) {
-      throw new Error("Không thể hủy lịch (Lịch không tồn tại hoặc đã hoàn thành/hủy rồi).");
-    }
-    return true;
+    return await bookingRepo.cancelBooking(bookingId, patientId);
   }
 
   async deleteBooking(bookingId) {
-    if (!bookingId) throw new Error("Thiếu ID lịch hẹn để xóa!");
     return await bookingRepo.deleteBooking(bookingId);
   }
 }
-
 module.exports = new BookingService();

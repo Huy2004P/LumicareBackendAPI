@@ -1,6 +1,5 @@
 const doctorService = require("../services/doctor.service");
 
-// Hàm bọc lỗi (Try/Catch)
 const safeCall = async (callback, func) => {
   try {
     const result = await func();
@@ -11,51 +10,65 @@ const safeCall = async (callback, func) => {
   }
 };
 
-// Hàm Helper: Chuyển đổi dữ liệu DB (snake_case) thành Proto (camelCase)
 const mapToProto = (d) => ({
   id: d.id,
-  fullName: d.full_name,       // DB: full_name -> Proto: fullName
-  email: d.email || "",        // Lấy từ bảng users (đã join)
+  fullName: d.full_name,
+  email: d.email || "",
   phone: d.phone || "",
   position: d.position || "",
   description: d.description || "",
   price: d.price || 0,
   avatar: d.avatar || "",
-  specialtyName: d.specialty_name || "", // Lấy từ bảng specialties
-  roomName: d.room_name || "",           // Lấy từ bảng rooms
-  clinicName: d.clinic_name || "",       // Lấy từ bảng clinics
+  specialtyName: d.specialty_name || "",
+  roomName: d.room_name || "",
+  clinicName: d.clinic_name || "",
   active: d.active === 1
 });
 
 module.exports = {
-  // 1. Tạo bác sĩ
   CreateDoctor: (call, callback) => {
     safeCall(callback, async () => {
-      // call.request chứa: email, password, fullName, specialtyId...
       const newDoctor = await doctorService.createDoctor(call.request);
-      
-      // Map kết quả trả về đúng định dạng DoctorResponse
       return mapToProto(newDoctor);
     });
   },
-
-  // 2. Lấy danh sách
   GetAllDoctors: (call, callback) => {
+    console.log(">>> Dữ liệu Kreya gửi xuống:", JSON.stringify(call.request));
     safeCall(callback, async () => {
-      // call.request chứa: searchTerm, specialtyId...
       const doctors = await doctorService.getAllDoctors(call.request);
-      
-      return { 
-        doctors: doctors.map(mapToProto) 
-      };
+      return { doctors: doctors.map(mapToProto) };
     });
   },
-
-  // 3. Lấy chi tiết
   GetDoctorById: (call, callback) => {
     safeCall(callback, async () => {
       const doctor = await doctorService.getDoctorById(call.request.id);
       return mapToProto(doctor);
     });
-  }
+  },
+  // --- THÊM KHÚC NÀY VÀO NÈ HUY ---
+  AssignServiceToDoctor: (call, callback) => {
+    console.log(">>> Request gán dịch vụ:", JSON.stringify(call.request));
+    safeCall(callback, async () => {
+      // Gọi đúng hàm assignServicesToDoctor bên Service
+      return await doctorService.assignServicesToDoctor(call.request);
+    });
+  },
+  GetDoctorServices: (call, callback) => {
+    safeCall(callback, async () => {
+        const result = await doctorService.getDoctorServices(call.request.id);
+        
+        // Dùng normalize('NFC') để chuẩn hóa tiếng Việt về đúng chuẩn UTF-8
+        const cleanDoctorName = result.fullName ? String(result.fullName).normalize('NFC') : "Bác sĩ vô danh";
+
+        return {
+            success: true,
+            doctorName: cleanDoctorName, // Gửi cái tên đã được làm sạch
+            data: result.services.map(s => ({
+                id: s.id,
+                name: s.name ? String(s.name).normalize('NFC') : "",
+                price: s.price
+            }))
+        };
+    });
+}
 };

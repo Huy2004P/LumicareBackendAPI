@@ -14,15 +14,16 @@ const safeCall = async (callback, func) => {
 module.exports = {
   // 1. Tạo lịch hàng loạt
   BulkCreateSchedule: (call, callback) => {
-    safeCall(callback, async () => {
-      // call.request chứa: doctor_id, date, time_types (array), max_booking
-      await scheduleService.bulkCreateSchedule(call.request);
-      
-      return { 
-        success: true, 
-        message: "Tạo lịch khám thành công!" 
-      };
-    });
+      safeCall(callback, async () => {
+          console.log("📅 Dữ liệu thô từ Kreya:", call.request.date); // Soi thử date truyền vào
+          const result = await scheduleService.bulkCreateSchedule(call.request);
+          // Trả về đúng message ScheduleResponse trong proto
+          return { 
+              success: result.success, 
+              message: result.message,
+              conflict_times: result.conflict_times || [] 
+          };
+      });
   },
 
   // 2. Lấy danh sách lịch theo ngày

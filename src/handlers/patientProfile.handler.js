@@ -12,16 +12,24 @@ const safeCall = async (callback, func) => {
 };
 
 // Hàm map DB Object -> Proto Object (Quan trọng để khớp tên cột)
-const mapToProto = (p) => ({
-  id: p.id,
-  user_id: p.owner_patient_id, // DB là owner_patient_id
-  full_name: p.full_name,
-  birthday: p.birthday ? new Date(p.birthday).toISOString().split('T')[0] : "", // Format YYYY-MM-DD
-  gender: p.gender,
-  phone_number: p.phone,       // DB là phone -> Proto là phone_number
-  address: p.address,
-  relationship: p.relationship
-});
+const mapToProto = (p) => {
+  // Logic chuyển đổi giới tính từ ký tự sang chữ
+  let displayGender = p.gender;
+  if (p.gender === 'M') displayGender = 'Nam';
+  else if (p.gender === 'F') displayGender = 'Nữ';
+  else if (p.gender === 'O') displayGender = 'Khác';
+
+  return {
+    id: p.id,
+    user_id: p.owner_patient_id, 
+    full_name: p.full_name,
+    birthday: p.birthday ? new Date(p.birthday).toISOString().split('T')[0] : "",
+    gender: displayGender, // Trả về "Nam" hoặc "Nữ" ở đây nè Huy!
+    phone_number: p.phone,
+    address: p.address,
+    relationship: p.relationship
+  };
+};
 
 module.exports = {
   // 1. Get List
@@ -60,8 +68,15 @@ module.exports = {
   // 5. Get One
   GetProfileById: (call, callback) => {
     safeCall(callback, async () => {
-      const profile = await service.getProfileById(call.request.id);
+      // 🔍 DEBUG: Ông thêm dòng này để xem thực tế Node.js đang nhận tên trường là gì
+      console.log(">>> Dữ liệu Kreya gửi lên thực tế:", call.request);
+
+      // Thử đổi sang cách bóc tách an toàn cho cả 2 trường hợp (snake_case và camelCase)
+      const id = call.request.id;
+      const userId = call.request.user_id || call.request.userId; 
+
+      const profile = await service.getProfileDetail(id, userId);
       return mapToProto(profile);
     });
-  }
+  },
 };

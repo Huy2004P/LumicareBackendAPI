@@ -21,7 +21,7 @@ service PatientProfileService {
 
 message StatusResponse { bool success = 1; string message = 2; }
 
-message GetByIdRequest { int32 id = 1; }
+message GetByIdRequest { int32 id = 1; int32 user_id = 2;}
 
 message GetProfilesRequest { int32 user_id = 1; }
 

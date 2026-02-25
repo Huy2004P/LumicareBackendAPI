@@ -11,10 +11,11 @@ const doctorHandler = require("./handlers/doctor.handler");
 const scheduleHandler = require("./handlers/schedule.handler");
 const bookingHandler = require("./handlers/booking.handler");
 const appointmentHandler = require("./handlers/appointment.handler");
+const patientProfileHandler = require("./handlers/patientProfile.handler");
 
 // 2. Import Interceptor (Để bảo vệ API cần đăng nhập)
 // Đảm bảo bạn đã tạo file này trong src/utils/grpc.interceptor.js
-const checkAuth = require("./interceptors/auth.interceptor");
+const checkAuth = require("./utils/grpc.interceptor");
 const { resetPassword } = require("./services/auth.service");
 
 const server = new grpc.Server();
@@ -56,9 +57,9 @@ const profilePackage = loadProto("profile.proto").profile;
 
 server.addService(profilePackage.ProfileService.service, {
   // Bọc hàm handler bằng checkAuth để kiểm tra Token trước khi chạy
-  GetMyProfile: checkAuth(profileHandler.getMyProfile),
-  UpdateProfile: checkAuth(profileHandler.updateProfile),
-  ChangePassword: checkAuth(profileHandler.changePassword),
+  GetMyProfile: checkAuth(profileHandler.GetMyProfile),
+  UpdateProfile: checkAuth(profileHandler.UpdateProfile),
+  ChangePassword: checkAuth(profileHandler.ChangePassword),
 });
 
 // 3. MASTER - DATA
@@ -114,36 +115,47 @@ server.addService(masterPackage.MasterDataService.service, {
 const doctorPackage = loadProto("doctor.proto").doctor;
 server.addService(doctorPackage.DoctorService.service, {
   //tao bac si
-  CreateDoctor: doctorHandler.createDoctor,
-
+  CreateDoctor: doctorHandler.CreateDoctor,
   //lay toan bo bac si
-  GetAllDoctors: doctorHandler.getAllDoctors,
-
+  GetAllDoctors: doctorHandler.GetAllDoctors,
   //lay bac si theo id
-  GetDoctorById: doctorHandler.getDoctorById,
+  GetDoctorById: doctorHandler.GetDoctorById,
+  AssignServiceToDoctor: doctorHandler.AssignServiceToDoctor,
+  GetDoctorServices: doctorHandler.GetDoctorServices,
 });
 // 5. SCHEDULE
 // Load file src/protos/schedule.proto
 const schedulePackage = loadProto("schedule.proto").schedule;
 server.addService(schedulePackage.ScheduleService.service, {
-  BulkCreateSchedule: scheduleHandler.BulkCreateSchedule,
-  GetScheduleByDate: scheduleHandler.GetScheduleByDate,
+  BulkCreateSchedule: checkAuth(scheduleHandler.BulkCreateSchedule), // Bác sĩ mới được tạo
+  GetScheduleByDate: scheduleHandler.GetScheduleByDate,             // Bệnh nhân xem thì public
 });
 // 6. BOOKING
 // Load file src/protos/booking.proto
 const bookingPackage = loadProto("booking.proto").booking;
 server.addService(bookingPackage.BookingService.service, {
-  CreateBooking: bookingHandler.CreateBooking,
-  GetBookingHistory: bookingHandler.GetBookingHistory,
-  CancelBooking: bookingHandler.CancelBooking,
+  CreateBooking: checkAuth(bookingHandler.CreateBooking),     // Phải đăng nhập mới đặt được lịch
+  GetBookingHistory: checkAuth(bookingHandler.GetBookingHistory),
+  CancelBooking: checkAuth(bookingHandler.CancelBooking),
+  DeleteBooking: checkAuth(bookingHandler.DeleteBooking),
 });
 // 7. APPOINTMENT
 // Load file src/protos/appointment.proto
 const appointmentPackage = loadProto("appointment.proto").appointment;
 server.addService(appointmentPackage.AppointmentService.service, {
-  GetListPatientForDoctor: appointmentHandler.GetListPatientForDoctor,
-  VerifyBooking: appointmentHandler.VerifyBooking,
-  FinishAppointment: appointmentHandler.FinishAppointment,
+  GetListPatientForDoctor: checkAuth(appointmentHandler.GetListPatientForDoctor),
+  VerifyBooking: checkAuth(appointmentHandler.VerifyBooking),
+  FinishAppointment: checkAuth(appointmentHandler.FinishAppointment),
+});
+// 8. PATIENT PROFILE
+// Load file src/protos/patientProfile.proto
+const patientProfilePackage = loadProto("patientProfile.proto").patient_profile;
+server.addService(patientProfilePackage.PatientProfileService.service, {
+  GetAllProfiles: patientProfileHandler.GetAllProfiles,
+  CreateProfile: patientProfileHandler.CreateProfile,
+  UpdateProfile: patientProfileHandler.UpdateProfile,
+  DeleteProfile: patientProfileHandler.DeleteProfile,
+  GetProfileById: patientProfileHandler.GetProfileById,
 });
 // KHỞI ĐỘNG SERVER
 

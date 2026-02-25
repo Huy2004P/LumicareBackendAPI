@@ -1,50 +1,50 @@
-// Tạo json web token cho người dùng, không sửa được, có hạn sử dụng.
-// Cấu trúc là header.payload.signature
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-// 1. Create Access Token (Đổi tên từ signToken -> generateToken)
+// 1. Tạo Access Token
 const generateToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET || "khoa_bi_mat_123", {
-    expiresIn: process.env.JWT_EXPIRE || "1d",
+  if (!process.env.JWT_SECRET) {
+    console.error("❌ [JWT Error] JWT_SECRET is not defined in .env");
+  }
+  return jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || "1h",
   });
 };
 
-// 2. Create Refresh Token (Đổi tên từ signRefreshToken -> generateRefreshToken)
+// 2. Tạo Refresh Token
 const generateRefreshToken = (payload) => {
-  return jwt.sign(
-    payload,
-    process.env.JWT_REFRESH_SECRET || "khoa_refresh_456",
-    {
-      expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d",
-    }
-  );
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d",
+  });
 };
 
-// 3. Verify Access Token
+// 3. Xác thực Access Token
 const verifyToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET || "khoa_bi_mat_123");
+    console.log("🔑 [DEBUG] Chìa khóa Server đang giữ:", process.env.JWT_SECRET);
+    // Không dùng fallback string để tránh sai lệch Key giữa các môi trường
+    return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
+    // Log lỗi chi tiết để Huy biết tại sao Token tạch
+    console.log("❌ [JWT Verify Error]:", error.message); 
+    // Các lỗi phổ biến: "jwt expired" (hết hạn), "invalid signature" (sai key)
     return null;
   }
 };
 
-// 4. Verify Refresh Token
+// 4. Xác thực Refresh Token
 const verifyRefreshToken = (token) => {
   try {
-    return jwt.verify(
-      token,
-      process.env.JWT_REFRESH_SECRET || "khoa_refresh_456"
-    );
+    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
   } catch (error) {
+    console.log("❌ [Refresh Token Error]:", error.message);
     return null;
   }
 };
 
 module.exports = {
-  generateToken, // Export đúng tên này
-  generateRefreshToken, // Export đúng tên này
+  generateToken,
+  generateRefreshToken,
   verifyToken,
   verifyRefreshToken,
 };

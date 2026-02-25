@@ -1,14 +1,14 @@
 const userRepo = require("../repositories/user.repo");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const { generateToken, generateRefreshToken } = require("../utils/jwt.util");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_123";
 
 class AuthService {
   generateTokens(payload) {
-    const accessToken = jwt.sign(payload, ACCESS_TOKEN_SECRET, { expiresIn: "1d" });
-    const refreshToken = jwt.sign(payload, REFRESH_TOKEN_SECRET, { expiresIn: "30d" });
+    const accessToken = generateToken(payload);
+    const refreshToken = generateRefreshToken(payload);
     return { accessToken, refreshToken };
   }
 
@@ -47,9 +47,15 @@ class AuthService {
   async login(email, password) {
     const user = await userRepo.findByEmail(email);
     if (!user) throw new Error("Email không tồn tại!");
-    if (!(await bcrypt.compare(password, user.password))) throw new Error("Mật khẩu sai!");
+    
+    if (!(await bcrypt.compare(password, user.password))) {
+      throw new Error("Mật khẩu sai!");
+    }
 
+    // 1. Lấy thông tin full (đã join bảng doctor/patient)
     const userInfo = await userRepo.getUserFullInfo(user.id, user.role);
+
+    // 2. Dùng hàm generateTokens (CÓ S TRONG FILE CỦA ÔNG)
     const tokens = this.generateTokens({ id: user.id, role: user.role });
 
     return {

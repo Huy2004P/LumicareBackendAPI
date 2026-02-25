@@ -2,59 +2,58 @@ const db = require("../config/database");
 
 class ProfileRepository {
   
-  // 1. Lấy thông tin Bệnh nhân (Join Users + Patients)
+  // 1. Lấy thông tin Bệnh nhân
   async getPatientProfile(userId) {
-    const sql = `
-      SELECT u.id, u.email, u.role, u.created_at,
-             p.full_name, p.phone, p.avatar
-      FROM users u
-      LEFT JOIN patients p ON u.id = p.user_id
-      WHERE u.id = ?
-    `;
-    const [rows] = await db.execute(sql, [userId]);
-    return rows[0];
+    const sql = `SELECT full_name as fullName, phone, avatar, gender FROM patient_profiles WHERE owner_patient_id = ?`;
+    const [rows] = await db.query(sql, [userId]);
+    return rows[0]; 
   }
 
-  // 2. Lấy thông tin Bác sĩ (Join Users + Doctors)
+  // 2. Lấy thông tin Bác sĩ
   async getDoctorProfile(userId) {
-    const sql = `
-      SELECT u.id, u.email, u.role, u.created_at,
-             d.full_name, d.phone, d.avatar
-      FROM users u
-      LEFT JOIN doctors d ON u.id = d.user_id
-      WHERE u.id = ?
-    `;
-    const [rows] = await db.execute(sql, [userId]);
+    const sql = `SELECT full_name as fullName, phone, avatar FROM doctors WHERE user_id = ?`;
+    const [rows] = await db.query(sql, [userId]);
     return rows[0];
   }
 
-  // 3. Lấy thông tin Admin (Chỉ có bảng Users)
+  // 3. Lấy thông tin Admin
   async getAdminProfile(userId) {
-    const sql = `SELECT id, email, role, created_at FROM users WHERE id = ?`;
-    const [rows] = await db.execute(sql, [userId]);
+    const sql = `SELECT full_name as fullName, avatar FROM admin_profiles WHERE user_id = ?`;
+    const [rows] = await db.query(sql, [userId]);
     return rows[0];
   }
 
-  // 4. Cập nhật thông tin Bệnh nhân
+  // 1. Update cho Bệnh nhân (Có Gender)
   async updatePatient(userId, data) {
-    const sql = `
-      UPDATE patients 
-      SET full_name = ?, phone = ?, avatar = ?, updated_at = NOW()
-      WHERE user_id = ?
-    `;
-    const [result] = await db.execute(sql, [data.fullName, data.phone, data.avatar, userId]);
-    return result.affectedRows > 0;
+      const sql = `
+          UPDATE patient_profiles 
+          SET full_name = ?, phone = ?, avatar = ?, gender = ?, updated_at = NOW()
+          WHERE owner_patient_id = ?
+      `;
+      const [result] = await db.query(sql, [data.fullName, data.phone, data.avatar, data.gender, userId]);
+      return result.affectedRows > 0;
   }
 
-  // 5. Cập nhật thông tin Bác sĩ
+  // 2. Update cho Bác sĩ (KHÔNG có Gender)
   async updateDoctor(userId, data) {
-    const sql = `
-      UPDATE doctors 
-      SET full_name = ?, phone = ?, avatar = ?, updated_at = NOW()
-      WHERE user_id = ?
-    `;
-    const [result] = await db.execute(sql, [data.fullName, data.phone, data.avatar, userId]);
-    return result.affectedRows > 0;
+      const sql = `
+          UPDATE doctors 
+          SET full_name = ?, phone = ?, avatar = ?, updated_at = NOW()
+          WHERE user_id = ?
+      `;
+      const [result] = await db.query(sql, [data.fullName, data.phone, data.avatar, userId]);
+      return result.affectedRows > 0;
+  }
+
+  // 3. Update cho Admin (KHÔNG có Gender, KHÔNG có Phone)
+  async updateAdmin(userId, data) {
+      const sql = `
+          UPDATE admin_profiles 
+          SET full_name = ?, avatar = ?
+          WHERE user_id = ?
+      `;
+      const [result] = await db.query(sql, [data.fullName, data.avatar, userId]);
+      return result.affectedRows > 0;
   }
 }
 

@@ -2,20 +2,23 @@ const db = require("../config/database");
 
 class PatientProfileRepository {
   async getAllByOwnerId(ownerId) {
-    const sql = `
-      SELECT id, owner_patient_id, full_name, birthday, gender, phone, address, relationship 
-      FROM patient_profiles 
-      WHERE owner_patient_id = ? AND is_deleted = 0 
-      ORDER BY id DESC
-    `;
-    const [rows] = await db.execute(sql, [ownerId]);
-    return rows;
+      const sql = `
+        SELECT id, owner_patient_id, full_name, birthday, gender, phone, address, relationship 
+        FROM patient_profiles 
+        WHERE owner_patient_id = ? AND is_deleted = 0 
+        ORDER BY created_at DESC
+      `;
+      const [rows] = await db.execute(sql, [ownerId]);
+      return rows;
   }
 
-  async getById(id) {
-    const sql = "SELECT * FROM patient_profiles WHERE id = ? AND is_deleted = 0";
-    const [rows] = await db.execute(sql, [id]);
-    return rows[0];
+  async getByIdAndOwner(id, ownerId) {
+      const sql = `
+        SELECT * FROM patient_profiles 
+        WHERE id = ? AND owner_patient_id = ? AND is_deleted = 0
+      `;
+      const [rows] = await db.execute(sql, [id, ownerId]);
+      return rows[0];
   }
 
   async create(data) {
@@ -33,15 +36,39 @@ class PatientProfileRepository {
       SET full_name=?, birthday=?, gender=?, phone=?, address=?, relationship=?, updated_at=NOW()
       WHERE id=? AND owner_patient_id=? AND is_deleted = 0
     `;
-    const [result] = await db.execute(sql, [data.full_name, data.birthday, data.gender, data.phone_number, data.address, data.relationship, id, ownerId]);
+    
+    // Dùng toán tử || để đảm bảo nếu data.xxx không có thì truyền null hoặc chuỗi rỗng
+    const params = [
+      data.full_name || null,
+      data.birthday || null,
+      data.gender || null,
+      data.phone || null, // Chú ý: Service phải truyền data.phone cho Repo
+      data.address || null,
+      data.relationship || null,
+      id,
+      ownerId
+    ];
+
+    const [result] = await db.execute(sql, params);
     return result.affectedRows > 0;
   }
 
   async delete(id, ownerId) {
-    // ĐỔI SANG SOFT DELETE
-    const sql = "UPDATE patient_profiles SET is_deleted = 1 WHERE id = ? AND owner_patient_id = ?";
+    // Soft Delete: Chuyển is_deleted thành 1
+    const sql = `
+      UPDATE patient_profiles 
+      SET is_deleted = 1, updated_at = NOW() 
+      WHERE id = ? AND owner_patient_id = ?
+    `;
     const [result] = await db.execute(sql, [id, ownerId]);
     return result.affectedRows > 0;
+  }
+
+  // Thêm hàm này vào class PatientProfileRepository
+  async getPatientIdByUserId(userId) {
+    const sql = "SELECT id FROM patients WHERE user_id = ?";
+    const [rows] = await db.execute(sql, [userId]);
+    return rows[0] ? rows[0].id : null;
   }
 }
 

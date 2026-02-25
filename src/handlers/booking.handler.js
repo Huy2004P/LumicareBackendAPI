@@ -1,54 +1,67 @@
 const bookingService = require("../services/booking.service");
 
-const safeCall = async (callback, func) => {
-  try {
-    const result = await func();
-    callback(null, result);
-  } catch (error) {
-    console.error("Booking Handler Error:", error);
-    callback({ code: 13, message: error.message || "Lỗi Server" });
-  }
-};
-
 module.exports = {
-  CreateBooking: (call, callback) => {
-    safeCall(callback, async () => {
-      const bookingId = await bookingService.createBooking(call.request);
-      return { success: true, message: "Đặt lịch thành công!", booking_id: bookingId };
-    });
+  CreateBooking: async (call, callback) => {
+    try {
+      const id = await bookingService.createBooking(call.request);
+      callback(null, { success: true, message: "Thành công!", booking_id: id });
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
+  GetBookingHistory: async (call, callback) => {
+    try {
+      const userId = call.request.patient_id || call.request.patientId;
+      const res = await bookingService.getHistory(userId);
 
-  GetBookingHistory: (call, callback) => {
-    safeCall(callback, async () => {
-      const history = await bookingService.getHistory(call.request.patient_id);
-      const data = history.map(h => ({
-        id: h.id,
-        doctor_name: h.doctor_name,
-        date: h.date instanceof Date ? h.date.toISOString().split('T')[0] : h.date,
-        time_display: h.time_display,
-        status: h.status,
-        reason: h.reason,
-        patient_name: h.patient_name || "Chính chủ"
-      }));
-      return { success: true, data };
-    });
+      callback(null, { 
+        success: true, 
+        data: res.map(i => ({
+          id: i.id,
+          doctor_name: i.doctor_name,    // Sửa thành doctor_name (khớp .proto)
+          date: i.date.toString(),
+          time_display: i.time_display,  // Sửa thành time_display (khớp .proto)
+          status: i.status,
+          reason: i.reason,
+          patient_name: i.patient_name || "Bản thân", // Sửa thành patient_name
+          service_name: i.service_name || "Khám lẻ",  // Sửa thành service_name
+          price: parseFloat(i.booking_price) || 0
+        }))
+      });
+    } catch (e) { 
+      callback({ code: 13, message: e.message }); 
+    }
   },
-
-  CancelBooking: (call, callback) => {
-    safeCall(callback, async () => {
-      // Lưu ý: call.request.booking_id (theo proto mới)
-      const { booking_id, patient_id } = call.request; 
-      await bookingService.cancelBooking(booking_id, patient_id);
-      return { success: true, message: "Đã hủy lịch hẹn thành công.", booking_id };
-    });
+  CancelBooking: async (call, callback) => {
+    try {
+      // Lấy ID từ request để trả ngược lại cho App biết đơn nào vừa hủy
+      const bookingId = call.request.booking_id; 
+      
+      await bookingService.cancelBooking(bookingId, call.request.patient_id);
+      
+      callback(null, { 
+        success: true, 
+        message: "Đã hủy lịch!",
+        booking_id: bookingId // ✅ Thêm dòng này để Kreya hiện đúng ID
+      });
+    } catch (e) { 
+      callback({ code: 13, message: e.message }); 
+    }
   },
-
-  // BỔ SUNG: Handler cho việc Xóa ảo
-  DeleteBooking: (call, callback) => {
-    safeCall(callback, async () => {
-      const { booking_id } = call.request;
-      await bookingService.deleteBooking(booking_id);
-      return { success: true, message: "Đã xóa đơn đặt lịch khỏi hệ thống.", booking_id };
-    });
+  DeleteBooking: async (call, callback) => {
+    try {
+      // 1. Lấy ID từ request ra trước
+      const bookingId = call.request.booking_id;
+      
+      // 2. Chạy logic xóa trong Service
+      await bookingService.deleteBooking(bookingId);
+      
+      // 3. Trả về đúng cái ID vừa xóa để Kreya không bị hiện số 0
+      callback(null, { 
+        success: true, 
+        message: "Đã xóa thành công!", 
+        booking_id: bookingId 
+      });
+    } catch (e) { 
+      callback({ code: 13, message: e.message }); 
+    }
   }
 };
