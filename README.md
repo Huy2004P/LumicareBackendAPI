@@ -4,7 +4,7 @@ Dự án Backend cho hệ thống BookingCare, được xây dựng trên nền 
 
 ## Thông tin Tác giả
 * **Họ và tên:** Văn Bá Phát Huy
-* **Vai trò:** Sinh viên thực tập
+* **Vai trò:** Sinh viên thực hiện
 * **Giai đoạn:** Tuần 4 - Hoàn thiện các Module nâng cao (Statistic, Feedback, Notification)
 
 ---
@@ -13,11 +13,13 @@ Dự án Backend cho hệ thống BookingCare, được xây dựng trên nền 
 
 ### 1. Hệ thống Thống kê và Dashboard (Statistic Service)
 Cung cấp các chỉ số phân tích dữ liệu thực tế thông qua các truy vấn SQL tối ưu:
-* **Admin Dashboard:** * Thống kê tổng doanh thu, tổng số lượng bác sĩ và bệnh nhân trên toàn hệ thống.
+* **Admin Dashboard:**
+    * Thống kê tổng doanh thu, tổng số lượng bác sĩ và bệnh nhân trên toàn hệ thống.
     * Tính toán tỷ lệ tăng trưởng doanh thu theo tháng.
     * Danh sách Top 3 Bác sĩ có hiệu suất cao nhất và các dịch vụ y tế phổ biến nhất.
     * Dữ liệu biểu đồ doanh thu định dạng theo tháng.
-* **Doctor Dashboard:** * Theo dõi số lượng bệnh nhân thực tế trong ngày.
+* **Doctor Dashboard:**
+    * Theo dõi số lượng bệnh nhân thực tế trong ngày.
     * Phân loại trạng thái lịch hẹn: Chờ khám, Hoàn thành, Đã hủy.
     * Thống kê điểm đánh giá trung bình (Average Rating) và doanh thu tuần.
     * Lịch sử 5 ca khám gần nhất kèm thông tin chi tiết bệnh nhân.
@@ -39,8 +41,6 @@ Cung cấp các chỉ số phân tích dữ liệu thực tế thông qua các t
 * **Cơ sở dữ liệu:** [MySQL](https://www.mysql.com/) (Sử dụng JOIN, Subqueries và Aggregate Functions).
 * **Quản lý mã nguồn:** Git (Phân nhánh theo tuần: `tuan-4`).
 
-
-
 ---
 
 ## Cấu trúc thư mục dự án
@@ -49,36 +49,15 @@ src/
 ├── protos/            # Định nghĩa Interface Definition Language (.proto)
 │   ├── appointment.proto
 │   ├── feedback.proto
+│   ├── statistic.proto
 │   └── ....
 ├── repositories/      # Tầng truy xuất dữ liệu (Data Access Layer)
 │   ├── appointment.repo.js
 │   ├── feedback.repo.js
+│   ├── statistic.repo.js
 │   └── ....
 ├── services/          # Tầng xử lý logic nghiệp vụ (Business Logic Layer)
 ├── handlers/          # Tầng tiếp nhận request từ gRPC (Presentation Layer)
 └── server.js          # Điểm khởi chạy hệ thống (Entry Point)
 
 ```
-Hướng dẫn cài đặt và Vận hành
-Cài đặt phụ thuộc:
-
-Bash
-npm install
-Cấu hình Cơ sở dữ liệu:
-
-Import sơ đồ cơ sở dữ liệu từ file SQL đi kèm.
-
-Cập nhật thông tin kết nối trong file src/config/database.js.
-
-Khởi chạy Server:
-
-Bash
-npm run dev
-Kiểm thử hệ thống (Testing)
-Sử dụng Kreya hoặc BloomRPC kết nối tới cổng mặc định 50051.
-
-StatisticService: Kiểm tra GetAdminDashboard và GetDoctorDashboard.
-
-FeedbackService: Kiểm tra SendFeedback và GetDoctorFeedbacks.
-
-Ghi chú: Toàn bộ mã nguồn đã được tối ưu hóa SQL để đảm bảo tốc độ phản hồi < 100ms cho các truy vấn thống kê phức tạp.
