@@ -1,179 +1,206 @@
-const repo = require("../repositories/master_data.repo");
+const service = require('../services/masterData.service');
 
-// Helper: Hàm bọc lỗi chung để code ngắn gọn, đỡ viết try/catch lặp lại
-const safeCall = async (callback, func) => {
-  try {
-    const result = await func();
-    callback(null, result);
-  } catch (error) {
-    console.error("GRPC Error:", error.message);
-    callback({
-      code: 13, // INTERNAL_ERROR
-      message: error.message || "Lỗi Server nội bộ",
+// Helper để kiểm tra dữ liệu tồn tại
+const handleSingleResponse = (callback, result, notFoundMsg) => {
+  if (!result) {
+    return callback({
+      code: 5, // gRPC NOT_FOUND
+      message: notFoundMsg || "Dữ liệu không tồn tại hoặc đã bị xóa"
     });
   }
+  callback(null, result);
 };
 
 module.exports = {
-  // =========================================================
-  // 1. CHUYÊN KHOA (SPECIALTY)
-  // =========================================================
-  CreateSpecialty: (call, callback) => {
-    safeCall(callback, () => repo.createSpecialty(call.request));
+  // --- 1. SPECIALTY ---
+  CreateSpecialty: async (call, callback) => {
+    try {
+      const result = await service.createSpecialty(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  UpdateSpecialty: (call, callback) => {
-    safeCall(callback, () => repo.updateSpecialty(call.request));
+  UpdateSpecialty: async (call, callback) => {
+    try {
+      const result = await service.updateSpecialty(call.request);
+      handleSingleResponse(callback, result, "Không tìm thấy Chuyên khoa để cập nhật");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
   DeleteSpecialty: async (call, callback) => {
     try {
-      await repo.deleteSpecialty(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteSpecialty(call.request.id);
+      callback(null, { success: result, message: "Xóa chuyên khoa thành công" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetSpecialtyById: async (call, callback) => {
+    try {
+      const result = await service.getSpecialtyById(call.request.id);
+      handleSingleResponse(callback, result, "Chuyên khoa không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllSpecialties: async (call, callback) => {
+    try {
+      const result = await service.getAllSpecialties();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetSpecialtyById: (call, callback) => {
-    safeCall(callback, () => repo.getSpecialtyById(call.request.id));
+  // --- 2. CLINIC ---
+  CreateClinic: async (call, callback) => {
+    try {
+      const result = await service.createClinic(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetAllSpecialties: (call, callback) => {
-    safeCall(callback, () => repo.getAllSpecialties(call.request));
+  UpdateClinic: async (call, callback) => {
+    try {
+      const result = await service.updateClinic(call.request);
+      handleSingleResponse(callback, result, "Không tìm thấy Cơ sở y tế để cập nhật");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  // =========================================================
-  // 2. CƠ SỞ Y TẾ (CLINIC)
-  // =========================================================
-  CreateClinic: (call, callback) => {
-    safeCall(callback, () => repo.createClinic(call.request));
-  },
-
-  UpdateClinic: (call, callback) => {
-    safeCall(callback, () => repo.updateClinic(call.request));
-  },
-
   DeleteClinic: async (call, callback) => {
     try {
-      await repo.deleteClinic(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteClinic(call.request.id);
+      callback(null, { success: result, message: "Xóa cơ sở y tế thành công" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetClinicById: async (call, callback) => {
+    try {
+      const result = await service.getClinicById(call.request.id);
+      handleSingleResponse(callback, result, "Cơ sở y tế không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllClinics: async (call, callback) => {
+    try {
+      const result = await service.getAllClinics();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetClinicById: (call, callback) => {
-    safeCall(callback, () => repo.getClinicById(call.request.id));
+  // --- 3. ROOM ---
+  CreateRoom: async (call, callback) => {
+    try {
+      const result = await service.createRoom(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetAllClinics: (call, callback) => {
-    safeCall(callback, () => repo.getAllClinics(call.request));
+  UpdateRoom: async (call, callback) => {
+    try {
+      const result = await service.updateRoom(call.request);
+      handleSingleResponse(callback, result, "Không tìm thấy phòng để cập nhật");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  // =========================================================
-  // 3. PHÒNG KHÁM (ROOM)
-  // =========================================================
-  CreateRoom: (call, callback) => {
-    safeCall(callback, () => repo.createRoom(call.request));
-  },
-
-  UpdateRoom: (call, callback) => {
-    safeCall(callback, () => repo.updateRoom(call.request));
-  },
-
   DeleteRoom: async (call, callback) => {
     try {
-      await repo.deleteRoom(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteRoom(call.request.id);
+      callback(null, { success: result, message: "Xóa phòng thành công" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetRoomById: async (call, callback) => {
+    try {
+      const result = await service.getRoomById(call.request.id);
+      handleSingleResponse(callback, result, "Phòng khám không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllRooms: async (call, callback) => {
+    try {
+      const result = await service.getAllRooms(call.request.clinicId);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetAllRooms: (call, callback) => {
-    safeCall(callback, async () => {
-      const data = await repo.getAllRooms(call.request);
-      return { data }; // Wrap vào object { data: [] } cho khớp proto RoomListResponse
-    });
+  // --- 4. SERVICE ---
+  CreateService: async (call, callback) => {
+    try {
+      const result = await service.createService(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  // =========================================================
-  // 4. DỊCH VỤ (SERVICE)
-  // =========================================================
-  CreateService: (call, callback) => {
-    safeCall(callback, () => repo.createService(call.request));
+  UpdateService: async (call, callback) => {
+    try {
+      const result = await service.updateService(call.request);
+      handleSingleResponse(callback, result, "Không tìm thấy dịch vụ để cập nhật");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  UpdateService: (call, callback) => {
-    safeCall(callback, () => repo.updateService(call.request));
-  },
-
   DeleteService: async (call, callback) => {
     try {
-      await repo.deleteService(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteService(call.request.id);
+      callback(null, { success: result, message: "Xóa dịch vụ thành công" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetServiceById: async (call, callback) => {
+    try {
+      const result = await service.getServiceById(call.request.id);
+      handleSingleResponse(callback, result, "Dịch vụ không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllServices: async (call, callback) => {
+    try {
+      const result = await service.getAllServices();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetAllServices: (call, callback) => {
-    safeCall(callback, () => repo.getAllServices(call.request));
+  // --- 5. DRUG ---
+  CreateDrug: async (call, callback) => {
+    try {
+      const result = await service.createDrug(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  // =========================================================
-  // 5. THUỐC (DRUGS) - MỚI
-  // =========================================================
-  CreateDrug: (call, callback) => {
-    safeCall(callback, () => repo.createDrug(call.request));
+  UpdateDrug: async (call, callback) => {
+    try {
+      const result = await service.updateDrug(call.request);
+      handleSingleResponse(callback, result, "Không tìm thấy thuốc để cập nhật");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  UpdateDrug: (call, callback) => {
-    safeCall(callback, () => repo.updateDrug(call.request));
-  },
-
   DeleteDrug: async (call, callback) => {
     try {
-      await repo.deleteDrug(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteDrug(call.request.id);
+      callback(null, { success: result, message: "Xóa thuốc thành công" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetDrugById: async (call, callback) => {
+    try {
+      const result = await service.getDrugById(call.request.id);
+      handleSingleResponse(callback, result, "Thuốc không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  },
+  GetAllDrugs: async (call, callback) => {
+    try {
+      const result = await service.getAllDrugs();
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
 
-  GetDrugById: (call, callback) => {
-    safeCall(callback, () => repo.getDrugById(call.request.id));
+  // --- 6. ALLCODES ---
+  CreateAllCode: async (call, callback) => {
+    try {
+      const result = await service.createAllCode(call.request);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetAllDrugs: (call, callback) => {
-    safeCall(callback, () => repo.getAllDrugs(call.request));
+  UpdateAllCode: async (call, callback) => {
+    try {
+      const result = await service.updateAllCode(call.request);
+      handleSingleResponse(callback, result, "Không tìm thấy mã code để cập nhật");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  // =========================================================
-  // 6. ALLCODES (MÃ CHUNG) - MỚI
-  // =========================================================
-  CreateAllCode: (call, callback) => {
-    safeCall(callback, () => repo.createAllCode(call.request));
-  },
-
-  UpdateAllCode: (call, callback) => {
-    safeCall(callback, () => repo.updateAllCode(call.request));
-  },
-
   DeleteAllCode: async (call, callback) => {
     try {
-      await repo.deleteAllCode(call.request.id);
-      callback(null, { success: true, message: "Xóa thành công" });
-    } catch (error) {
-      callback({ code: 13, message: error.message });
-    }
+      const result = await service.deleteAllCode(call.request.id);
+      callback(null, { success: result, message: "Xóa mã code thành công" });
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
-
-  GetAllCodes: (call, callback) => {
-    safeCall(callback, async () => {
-      // Hàm repo.getAllCodes trả về { data: [...] } nên return thẳng luôn
-      return await repo.getAllCodes(call.request.type);
-    });
+  GetAllCodeById: async (call, callback) => {
+    try {
+      const result = await service.getAllCodeById(call.request.id);
+      handleSingleResponse(callback, result, "Mã code không tồn tại");
+    } catch (e) { callback({ code: 13, message: e.message }); }
   },
+  GetAllCodes: async (call, callback) => {
+    try {
+      const result = await service.getAllCodes(call.request.type);
+      callback(null, result);
+    } catch (e) { callback({ code: 13, message: e.message }); }
+  }
 };

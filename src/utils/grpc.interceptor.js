@@ -1,32 +1,43 @@
-// File: src/utils/grpc.interceptor.js
-const { verifyToken } = require("./jwt.util"); // Đảm bảo bạn đã có file jwt.util.js
+const { verifyToken } = require("./jwt.util");
 
 const checkAuth = (handler) => {
   return async (call, callback) => {
     try {
-      // 1. Lấy metadata (Header)
       const metadata = call.metadata.getMap();
-      const authHeader = metadata["authorization"]; // gRPC key luôn là chữ thường
+      const authHeader = metadata["authorization"];
 
+      // 1. Kiểm tra sự tồn tại của Token
       if (!authHeader) {
-        return callback({ code: 16, details: "Missing Authorization Token" });
+        console.log("❌ [Auth] Missing Token");
+        return callback({ code: 16, details: "Bạn cần đăng nhập để thực hiện thao tác này!" });
       }
 
-      // 2. Lấy token
-      const token = authHeader.replace("Bearer ", "");
+      // 2. Tách chuỗi Bearer (Xử lý cả viết hoa/thường và dấu cách)
+      const parts = authHeader.split(" ");
+      if (parts.length !== 2 || parts[0].toLowerCase() !== "bearer") {
+        console.log("❌ [Auth] Invalid Format");
+        return callback({ code: 16, details: "Định dạng Token không đúng (Bearer <token>)" });
+      }
 
-      // 3. Verify
+      const token = parts[1].trim();
+
+      // 3. Xác thực Token
       const decoded = verifyToken(token);
       if (!decoded) {
-        return callback({ code: 16, details: "Invalid or Expired Token" });
+        console.log("❌ [Auth] Token Expired or Invalid");
+        return callback({ code: 16, details: "Phiên đăng nhập hết hạn hoặc không hợp lệ!" });
       }
 
-      // 4. Gắn user vào call và chạy tiếp
+      // 4. Gắn thông tin người dùng vào call để các Service phía sau sử dụng
+      console.log(`✅ [Auth] Success! User ID: ${decoded.id} - Role: ${decoded.role}`);
       call.user = decoded;
-      await handler(call, callback);
+
+      // 5. Cho phép chạy tiếp vào Handler
+      return handler(call, callback);
+
     } catch (error) {
-      console.error("Auth Error:", error);
-      callback({ code: 16, details: "Auth Failed" });
+      console.error("🔥 [Auth Error]:", error);
+      return callback({ code: 13, details: "Lỗi xác thực hệ thống!" });
     }
   };
 };

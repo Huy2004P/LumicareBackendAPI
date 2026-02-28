@@ -1,50 +1,74 @@
 const doctorService = require("../services/doctor.service");
 
-// Helper function de map du lieu tu DB sang proto
-const mapDoctorToResponse = (d) => ({
+const safeCall = async (callback, func) => {
+  try {
+    const result = await func();
+    callback(null, result);
+  } catch (error) {
+    console.error("Doctor Handler Error:", error);
+    callback({ code: 13, message: error.message || "Lỗi Server" });
+  }
+};
+
+const mapToProto = (d) => ({
   id: d.id,
   fullName: d.full_name,
-  email: d.email,
-  phone: d.phone,
-  position: d.position,
-  description: d.description,
-  price: d.price,
-  avatar: d.avatar,
+  email: d.email || "",
+  phone: d.phone || "",
+  position: d.position || "",
+  description: d.description || "",
+  price: d.price || 0,
+  avatar: d.avatar || "",
   specialtyName: d.specialty_name || "",
-  roomName: d.room_name || "", // Moi
-  clinicName: d.clinic_name || "", // Moi
-  active: !!d.active, // Chuyen int 1/0 sang boolean
+  roomName: d.room_name || "",
+  clinicName: d.clinic_name || "",
+  active: d.active === 1
 });
 
-//tao bac si
-const createDoctor = async (call, callback) => {
-  try {
-    const result = await doctorService.createDoctor(call.request);
-    callback(null, mapDoctorToResponse(result));
-  } catch (error) {
-    console.error("Error:", error.message);
-    callback({ code: 13, details: error.message });
-  }
-};
+module.exports = {
+  CreateDoctor: (call, callback) => {
+    safeCall(callback, async () => {
+      const newDoctor = await doctorService.createDoctor(call.request);
+      return mapToProto(newDoctor);
+    });
+  },
+  GetAllDoctors: (call, callback) => {
+    console.log(">>> Dữ liệu Kreya gửi xuống:", JSON.stringify(call.request));
+    safeCall(callback, async () => {
+      const doctors = await doctorService.getAllDoctors(call.request);
+      return { doctors: doctors.map(mapToProto) };
+    });
+  },
+  GetDoctorById: (call, callback) => {
+    safeCall(callback, async () => {
+      const doctor = await doctorService.getDoctorById(call.request.id);
+      return mapToProto(doctor);
+    });
+  },
+  // --- THÊM KHÚC NÀY VÀO NÈ HUY ---
+  AssignServiceToDoctor: (call, callback) => {
+    console.log(">>> Request gán dịch vụ:", JSON.stringify(call.request));
+    safeCall(callback, async () => {
+      // Gọi đúng hàm assignServicesToDoctor bên Service
+      return await doctorService.assignServicesToDoctor(call.request);
+    });
+  },
+  GetDoctorServices: (call, callback) => {
+    safeCall(callback, async () => {
+        const result = await doctorService.getDoctorServices(call.request.id);
+        
+        // Dùng normalize('NFC') để chuẩn hóa tiếng Việt về đúng chuẩn UTF-8
+        const cleanDoctorName = result.fullName ? String(result.fullName).normalize('NFC') : "Bác sĩ vô danh";
 
-//lay toan bo bac si
-const getAllDoctors = async (call, callback) => {
-  try {
-    const doctors = await doctorService.getAllDoctors(call.request);
-    callback(null, { doctors: doctors.map(mapDoctorToResponse) });
-  } catch (error) {
-    callback({ code: 13, details: error.message });
-  }
+        return {
+            success: true,
+            doctorName: cleanDoctorName, // Gửi cái tên đã được làm sạch
+            data: result.services.map(s => ({
+                id: s.id,
+                name: s.name ? String(s.name).normalize('NFC') : "",
+                price: s.price
+            }))
+        };
+    });
+}
 };
-
-//lay bac si theo id
-const getDoctorById = async (call, callback) => {
-  try {
-    const doctor = await doctorService.getDoctorById(call.request.id);
-    callback(null, mapDoctorToResponse(doctor));
-  } catch (error) {
-    callback({ code: 5, details: error.message });
-  }
-};
-
-module.exports = { createDoctor, getAllDoctors, getDoctorById };

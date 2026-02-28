@@ -9,8 +9,19 @@ service DoctorService {
   // Lấy danh sách
   rpc GetAllDoctors (DoctorFilter) returns (DoctorListResponse);
   
-  // Xem chi tiết (SỬA LẠI DÒNG NÀY CHO ĐÚNG)
+  // Xem chi tiết
   rpc GetDoctorById (DoctorIdRequest) returns (DoctorResponse);
+
+  // [MỚI] Gán dịch vụ cho bác sĩ (Lưu vào bảng doctor_services)
+  rpc AssignServiceToDoctor (AssignServiceRequest) returns (StatusResponse);
+  
+  // [MỚI] Lấy danh sách dịch vụ của 1 bác sĩ
+  rpc GetDoctorServices (DoctorIdRequest) returns (DoctorServiceListResponse);
+}
+
+message StatusResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message DoctorIdRequest { int32 id = 1; }
@@ -50,3 +61,21 @@ message DoctorResponse {
 }
 
 message DoctorListResponse { repeated DoctorResponse doctors = 1; }
+
+// --- CHỈNH LẠI MESSAGE NÀY THEO JSON CỦA HUY ---
+message AssignServiceRequest {
+  int32 doctorId = 1;      // Đổi từ doctor_id -> doctorId
+  repeated int32 serviceIds = 2; // Đổi từ service_ids -> serviceIds
+}
+
+message ServiceItem {
+  int32 id = 1;
+  string name = 2;
+  double price = 3;
+}
+
+message DoctorServiceListResponse {
+  bool success = 1;
+  string doctorName = 2;
+  repeated ServiceItem data = 3;
+}

@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package notification;
+
+service NotificationService {
+  // 1. Lấy danh sách thông báo của tôi
+  rpc GetMyNotifications (GetMyNotificationsRequest) returns (NotificationListResponse);
+
+  // 2. Đánh dấu đã đọc
+  rpc MarkAsRead (MarkAsReadRequest) returns (StatusResponse);
+}
+
+message StatusResponse { 
+  bool success = 1; 
+  string message = 2; 
+}
+
+message GetMyNotificationsRequest { 
+  int32 user_id = 1; 
+}
+
+message MarkAsReadRequest { 
+  int32 id = 1; 
+}
+
+message NotificationItem {
+  int32 id = 1;
+  int32 user_id = 2;
+  string message = 3; // Database chỉ có cột message
+  string type = 4;
+  bool is_read = 5;
+  string created_at = 6;
+}
+
+message NotificationListResponse {
+  bool success = 1;
+  repeated NotificationItem data = 2;
+}

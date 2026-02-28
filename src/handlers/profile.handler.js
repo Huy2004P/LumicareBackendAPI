@@ -1,78 +1,78 @@
-// src/handlers/profile.handler.js
 const profileService = require("../services/profile.service");
 
-// 1. Xem Profile
-const getMyProfile = async (call, callback) => {
+// Helper bọc lỗi
+const safeCall = async (callback, func) => {
   try {
-    // call.user lấy từ Interceptor (Token)
-    const userId = call.user.id;
-
-    const data = await profileService.getProfile(userId);
-
-    // Mapping data từ Service sang Proto (đề phòng service trả về dư/thiếu trường)
-    const response = {
-      id: data.id,
-      email: data.email,
-      role: data.role,
-      fullName: data.fullName,
-      phone: data.phone,
-      avatar: data.avatar,
-      createdAt: data.createdAt ? data.createdAt.toString() : "",
-    };
-
-    callback(null, response);
+    const result = await func();
+    callback(null, result);
   } catch (error) {
-    callback({ code: 13, details: error.message });
+    console.error("Profile Handler Error:", error);
+    callback({ code: 13, message: error.message || "Lỗi Server" });
   }
 };
 
-// 2. Cập nhật Profile
-const updateProfile = async (call, callback) => {
-  try {
-    const userId = call.user.id;
-    const { fullName, phone, avatar } = call.request;
+// Hàm lấy User ID từ call (Giả định Auth Interceptor đã chạy và gán user vào call)
+const getUserIdFromContext = (call) => {
+  // Cách 1: Nếu dùng grpc-js và interceptor gán vào call.user
+  if (call.user && call.user.id) return call.user.id;
+  
+  // Cách 2: Nếu gửi qua metadata với key 'user_id' (Dùng khi test Postman)
+  const meta = call.metadata.get('user_id');
+  if (meta && meta.length > 0) return parseInt(meta[0]);
 
-    // Gọi service update
-    await profileService.updateProfile(userId, {
-      full_name: fullName,
-      phone,
-      avatar,
-    });
-
-    // Lấy lại data mới nhất để trả về
-    const newData = await profileService.getProfile(userId);
-
-    callback(null, {
-      id: newData.id,
-      email: newData.email,
-      role: newData.role,
-      fullName: newData.fullName,
-      phone: newData.phone,
-      avatar: newData.avatar,
-      createdAt: newData.createdAt ? newData.createdAt.toString() : "",
-    });
-  } catch (error) {
-    callback({ code: 13, details: error.message });
-  }
-};
-
-// 3. Đổi mật khẩu
-const changePassword = async (call, callback) => {
-  try {
-    const userId = call.user.id;
-    const { oldPassword, newPassword } = call.request;
-
-    await profileService.changePassword(userId, { oldPassword, newPassword });
-
-    callback(null, { success: true, message: "Password changed successfully" });
-  } catch (error) {
-    // Nếu sai pass cũ, trả về lỗi Invalid Argument (code 3) hoặc Internal (13)
-    callback({ code: 3, details: error.message });
-  }
+  throw new Error("Không tìm thấy thông tin xác thực (User ID)!");
 };
 
 module.exports = {
-  getMyProfile,
-  updateProfile,
-  changePassword,
+  // 1. Xem Profile
+  GetMyProfile: (call, callback) => {
+    safeCall(callback, async () => {
+      const userId = getUserIdFromContext(call);
+      
+      const profile = await profileService.getMyProfile(userId);
+
+      // Map DB -> Proto
+      return {
+        id: profile.id,
+        email: profile.email,
+        role: profile.role,
+        fullName: profile.full_name || "",
+        phone: profile.phone || "",
+        avatar: profile.avatar || "",
+        createdAt: profile.created_at ? new Date(profile.created_at).toISOString() : ""
+      };
+    });
+  },
+
+  // 2. Cập nhật Profile
+  UpdateProfile: (call, callback) => {
+    safeCall(callback, async () => {
+      const userId = getUserIdFromContext(call);
+      
+      // call.request chứa: fullName, phone, avatar
+      const updatedProfile = await profileService.updateProfile(userId, call.request);
+      
+      return {
+        id: updatedProfile.id,
+        email: updatedProfile.email,
+        role: updatedProfile.role,
+        fullName: updatedProfile.full_name || "",
+        phone: updatedProfile.phone || "",
+        avatar: updatedProfile.avatar || "",
+        createdAt: updatedProfile.created_at ? new Date(updatedProfile.created_at).toISOString() : ""
+      };
+    });
+  },
+
+  // 3. Đổi mật khẩu
+  ChangePassword: (call, callback) => {
+    safeCall(callback, async () => {
+      const userId = getUserIdFromContext(call);
+      const { oldPassword, newPassword } = call.request;
+
+      await profileService.changePassword(userId, oldPassword, newPassword);
+      
+      return { success: true, message: "Đổi mật khẩu thành công!" };
+    });
+  }
 };

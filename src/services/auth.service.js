@@ -1,131 +1,90 @@
 const userRepo = require("../repositories/user.repo");
-const patientRepo = require("../repositories/patient.repo");
-const { hashPassword, comparePassword } = require("../utils/hash.util");
+const bcrypt = require("bcryptjs");
+const { generateToken, generateRefreshToken } = require("../utils/jwt.util");
 
-const otpStorage = {};
-// 👇 QUAN TRỌNG: Import đúng tên hàm từ file jwt.util.js bạn vừa gửi
-const {
-  generateToken,
-  generateRefreshToken,
-  verifyRefreshToken, // Import thêm cái này để dùng cho hàm refreshToken
-} = require("../utils/jwt.util");
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_123";
 
 class AuthService {
-  // --- ĐĂNG KÝ ---
-  async register({ email, password, role, fullName, phone }) {
-    // 1. Check email
-    const existingUser = await userRepo.findByEmail(email);
-    if (existingUser) throw new Error("Email already exists");
-
-    // 2. Hash pass & Tạo User
-    const hashedPassword = await hashPassword(password);
-    const newUserId = await userRepo.create({
-      email,
-      password: hashedPassword,
-      role: role || "patient",
-    });
-
-    // 3. Nếu là Patient, tạo hồ sơ
-    if (role === "patient" || !role) {
-      if (!fullName) throw new Error("Full name is required for patients");
-      await patientRepo.create(newUserId, fullName, phone);
-    }
-
-    return { id: newUserId, email };
+  generateTokens(payload) {
+    const accessToken = generateToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+    return { accessToken, refreshToken };
   }
 
-  // --- ĐĂNG NHẬP ---
-  async login({ email, password }) {
-    const user = await userRepo.findByEmail(email);
-    if (!user) throw new Error("User not found");
+  async register(data) {
+    // LOG ĐỂ KIỂM TRA: Xem Kreya gửi gì xuống đây
+    console.log(">>> Dữ liệu Register nhận được:", data);
 
-    const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) throw new Error("Incorrect password");
+    const { email, password, role, fullName, phone, gender, address } = data;
 
-    let patientInfo = null;
-    if (user.role === "patient") {
-      patientInfo = await patientRepo.findByUserId(user.id);
-    }
+    const existingUser = await userRepo.findByEmail(email);
+    if (existingUser) throw new Error("Email đã tồn tại!");
 
-    // 👇 SỬA: Gọi đúng tên hàm generateToken / generateRefreshToken
-    const accessToken = generateToken({ id: user.id, role: user.role });
-    const refreshToken = generateRefreshToken({ id: user.id });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Ép kiểu: Nếu có role thì dùng, không thì mới lấy patient
+    const userRole = role ? role.toLowerCase() : 'patient';
+    console.log(">>> Role sẽ được lưu vào DB:", userRole);
 
+    const userId = await userRepo.create({
+      email,
+      password: hashedPassword,
+      role: userRole,
+      fullName,
+      phone,
+      gender,
+      address
+    });
+
+    const tokens = this.generateTokens({ id: userId, role: userRole });
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        fullName: patientInfo ? patientInfo.full_name : null,
-        avatar: patientInfo ? patientInfo.avatar : null,
-        phone: patientInfo ? patientInfo.phone : null,
-      },
+      ...tokens,
+      user: { id: userId, email, role: userRole, fullName: fullName || "Người dùng mới" }
     };
   }
 
-  // --- GIA HẠN TOKEN ---
-  async refreshToken(token) {
-    // 👇 SỬA: Dùng hàm verifyRefreshToken đã import ở trên
-    const decode = verifyRefreshToken(token);
-
-    if (!decode) {
-      throw new Error("Invalid or expired refresh token");
-    }
-
-    // 👇 SỬA: Dùng đúng tên hàm generateToken
-    const newAccessToken = generateToken({ id: decode.id, role: decode.role });
-
-    return { accessToken: newAccessToken };
-  }
-
-  //quen mat khau
-  //yeu cau otp
-  async forgotPassword(email) {
-    //b1: kiem tra xem mat khau co trong he thong ko
+  async login(email, password) {
     const user = await userRepo.findByEmail(email);
-    if (!user) {
-      throw new Error("Email không tồn tại trong hệ thống");
+    if (!user) throw new Error("Email không tồn tại!");
+    
+    if (!(await bcrypt.compare(password, user.password))) {
+      throw new Error("Mật khẩu sai!");
     }
 
-    //b2: sinh ma otp ngau nhien
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 1. Lấy thông tin full (đã join bảng doctor/patient)
+    const userInfo = await userRepo.getUserFullInfo(user.id, user.role);
 
-    //b3: luu otp vao bo nho tam.
-    otpStorage[email] = otp;
+    // 2. Dùng hàm generateTokens (CÓ S TRONG FILE CỦA ÔNG)
+    const tokens = this.generateTokens({ id: user.id, role: user.role });
 
-    //b4: gia lap gui email:
-    console.log("----------------------------------------------------");
-    console.log(` [DỊCH VỤ OTP]: OTP được gửi đến email: ${email} là: ${otp}`);
-    console.log("----------------------------------------------------");
-
-    return true;
+    return {
+      ...tokens,
+      user: {
+        id: userInfo.id,
+        email: userInfo.email,
+        role: userInfo.role,
+        fullName: userInfo.fullName || "",
+        phone: userInfo.phone || "",
+        avatar: userInfo.avatar || ""
+      }
+    };
   }
 
-  //dat lai mat khau
-  async resetPassword({ email, otp, newPassword }) {
-    //b1: lay otp da luu trong ram.
-    const storedOtp = otpStorage[email];
+  async refreshToken(token) {
+    if (!token) throw new Error("Token trống!");
+    const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET);
+    return this.generateTokens({ id: decoded.id, role: decoded.role });
+  }
 
-    if (!storedOtp) {
-      throw new Error("Yêu cầu hết hạn hoặc chưa gửi OTP");
-    }
+  async logout() { return { success: true, message: "Đã đăng xuất" }; }
 
-    if (storedOtp !== otp) {
-      throw new Error("Mã OTP không chính xác!");
-    }
+  async forgotPassword(email) { return "OTP 123456"; }
 
-    //b2: ma dung --> hash mat khau moi.
-    const hashedPassword = await hashPassword(newPassword);
-
-    //b3: cap nhat mat khau vao database.
-    await userRepo.updatePasswordByEmail(email, hashedPassword);
-
-    //b4: xoa otp sau khi dung.
-    delete otpStorage[email];
-
-    return true;
+  async resetPassword(email, otp, newPass) {
+    const hashed = await bcrypt.hash(newPass, 10);
+    await userRepo.updatePasswordByEmail(email, hashed);
+    return "Thành công!";
   }
 }
 

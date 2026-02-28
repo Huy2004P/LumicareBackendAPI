@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package schedule;
+
+service ScheduleService {
+  // Tạo hoặc cập nhật lịch khám hàng loạt
+  rpc BulkCreateSchedule (BulkCreateScheduleRequest) returns (ScheduleResponse);
+  
+  // Lấy danh sách lịch khám theo ngày
+  rpc GetScheduleByDate (GetScheduleRequest) returns (GetScheduleListResponse);
+}
+
+message ScheduleResponse {
+  bool success = 1;
+  string message = 2;
+  // Danh sách các mã giờ (T1, T2...) bị xung đột (đã có người đặt nên không thể xóa/đổi)
+  repeated string conflict_times = 3; 
+}
+
+message BulkCreateScheduleRequest {
+  int32 doctor_id = 1;       
+  string date = 2;           // Định dạng YYYY-MM-DD
+  repeated string time_types = 3; // Mảng các mã giờ được chọn: ["T1", "T2", "T5"]
+  int32 max_booking = 4;     
+}
+
+message GetScheduleRequest {
+  int32 doctor_id = 1;
+  string date = 2; 
+}
+
+message ScheduleItem {
+  int32 id = 1;
+  string time_type = 2;       
+  string time_display = 3;    // Giờ hiển thị: "08:00 - 09:00"
+  int32 max_booking = 4;
+  int32 current_booking = 5;
+  bool is_available = 6;      // true nếu current < max
+}
+
+message GetScheduleListResponse {
+  bool success = 1;
+  repeated ScheduleItem data = 2;
+}
