@@ -12,7 +12,9 @@ const scheduleHandler = require("./handlers/schedule.handler");
 const bookingHandler = require("./handlers/booking.handler");
 const appointmentHandler = require("./handlers/appointment.handler");
 const patientProfileHandler = require("./handlers/patientProfile.handler");
-
+const notificationHandler = require("./handlers/notification.handler");
+const statisticHandler = require("./handlers/statistic.handler");
+const feedbackHandler = require("./handlers/feedback.handler");
 // 2. Import Interceptor (Để bảo vệ API cần đăng nhập)
 // Đảm bảo bạn đã tạo file này trong src/utils/grpc.interceptor.js
 const checkAuth = require("./utils/grpc.interceptor");
@@ -157,7 +159,29 @@ server.addService(patientProfilePackage.PatientProfileService.service, {
   DeleteProfile: patientProfileHandler.DeleteProfile,
   GetProfileById: patientProfileHandler.GetProfileById,
 });
+// 9. NOTIFICATION
+// Load file src/protos/notification.proto
+const notificationPackage = loadProto("notification.proto").notification;
+server.addService(notificationPackage.NotificationService.service, {
+  GetMyNotifications: notificationHandler.GetMyNotifications,
+  MarkAsRead: notificationHandler.MarkAsRead,
+});
+// 10. STATISTIC
+// Load file src/protos/statistic.proto
+const statisticPackage = loadProto("statistic.proto").statistic;
+server.addService(statisticPackage.StatisticService.service, {
+  GetAdminDashboard: statisticHandler.GetAdminDashboard,
+  GetDoctorDashboard: statisticHandler.GetDoctorDashboard,
+});
+// 11. FEEDBACK
+// Load file src/protos/feedback.proto
+const feedbackPackage = loadProto("feedback.proto").feedback;
+server.addService(feedbackPackage.FeedbackService.service, {
+  SendFeedback: feedbackHandler.SendFeedback,
+  GetDoctorFeedbacks: feedbackHandler.GetDoctorFeedbacks,
+});
 // KHỞI ĐỘNG SERVER
+
 
 // gRPC thường chạy port 50051 (khác với 3000 của Web)
 const PORT = process.env.PORT || 50051;

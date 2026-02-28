@@ -24,7 +24,7 @@ module.exports = {
         booking_id: r.booking_id,
         patient_id: r.patient_id,
         patient_name: r.patient_name,
-        phone_number: r.phone_number,
+        phone_number: r.phone,
         time_type: r.time_type,
         time_display: r.time_display,
         reason: r.reason,

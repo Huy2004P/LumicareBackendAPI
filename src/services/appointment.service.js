@@ -1,5 +1,5 @@
 const appointmentRepo = require("../repositories/appointment.repo");
-
+const notificationService = require("./notification.service");
 class AppointmentService {
   
   // Logic lấy danh sách
@@ -26,12 +26,33 @@ class AppointmentService {
       throw new Error("Lịch hẹn không tồn tại hoặc lỗi cập nhật!");
     }
 
+    try {
+      // Lấy thông tin booking để biết patient_id là ai
+      const bookingInfo = await appointmentRepo.getBookingById(bookingId);
+      
+      if (bookingInfo && bookingInfo.user_id) {
+        let msg = "";
+        if (finalStatus === 'confirmed') msg = "Lịch khám tại nhà của bạn đã được bác sĩ xác nhận!";
+        if (finalStatus === 'arrived') msg = "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị!";
+        
+        if (bookingInfo && bookingInfo.user_id) {
+          await notificationService.sendNotification(
+            bookingInfo.user_id, // Bây giờ nó đã là ID chuẩn của bảng users rồi
+            msg, 
+            'booking'
+          );
+        }
+      }
+    } catch (notiError) {
+      // Nếu lỗi bắn thông báo thì cũng kệ nó, đừng làm hỏng luồng verify chính
+      console.error("Lỗi gửi thông báo:", notiError);
+    }
+
     return true;
   }
 
   // Logic hoàn tất khám
   async finishAppointment(data) {
-    // 1. Validate dữ liệu
     if (!data.booking_id || !data.doctor_id) {
       throw new Error("Dữ liệu không hợp lệ (Thiếu ID)!");
     }
@@ -39,9 +60,8 @@ class AppointmentService {
       throw new Error("Vui lòng nhập chẩn đoán bệnh!");
     }
 
-    // 2. Gọi Transaction bên Repo
+    // Không cần xử lý gì thêm, truyền cục data (đã có re_exam_date từ proto) xuống Repo
     const recordId = await appointmentRepo.finishAppointmentTransaction(data);
-    
     return recordId;
   }
 }

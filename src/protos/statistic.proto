@@ -1,37 +1,43 @@
 syntax = "proto3";
-
 package statistic;
 
 service StatisticService {
-  // 1. Thống kê doanh thu/số lượng theo tháng (Dành cho Admin)
   rpc GetAdminDashboard (DashboardRequest) returns (AdminDashboardResponse);
-
-  // 2. Thống kê cho Bác sĩ (Số khách hôm nay, tuần này...)
   rpc GetDoctorDashboard (DashboardRequest) returns (DoctorDashboardResponse);
 }
 
 message DashboardRequest {
-  string from_date = 1; // 2024-01-01
-  string to_date = 2;   // 2024-01-31
-  int32 doctor_id = 3;  // Nếu là bác sĩ xem
+  string from_date = 1;
+  string to_date = 2;
+  int32 doctor_id = 3;
 }
 
+// Mở rộng Admin Dashboard
 message AdminDashboardResponse {
   int32 total_doctors = 1;
   int32 total_patients = 2;
   int32 total_bookings = 3;
-  double total_revenue = 4; // Tổng tiền
-  repeated ChartData revenue_by_month = 5;
+  double total_revenue = 4;
+  double growth_rate = 5; // Tỷ lệ tăng trưởng %
+  int32 cancelled_bookings = 6;
+  repeated ChartData revenue_by_month = 7;
+  repeated TopDoctor top_doctors = 8;
+  repeated TopService top_services = 9;
 }
 
+// Mở rộng Doctor Dashboard
 message DoctorDashboardResponse {
   int32 total_patients_today = 1;
   int32 pending_bookings = 2;
   int32 completed_bookings = 3;
-  double total_revenue = 4;
+  int32 cancelled_bookings = 4;
+  double total_revenue = 5;
+  double average_rating = 6; // Đánh giá trung bình
+  repeated ChartData weekly_activity = 7;
+  repeated RecentBooking recent_bookings = 8;
 }
 
-message ChartData {
-  string label = 1; // "Tháng 1", "Tháng 2"
-  double value = 2;
-}
+message TopDoctor { string name = 1; int32 total_done = 2; double revenue = 3; }
+message TopService { string name = 1; int32 usage_count = 2; }
+message RecentBooking { string patient_name = 1; string time = 2; string status = 3; }
+message ChartData { string label = 1; double value = 2; }

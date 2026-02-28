@@ -57,12 +57,14 @@ message MedicineItem {
 
 message FinishAppointmentRequest {
   int32 doctor_id = 1;
-  int32 booking_id = 2;       
-  string symptoms = 3;        
-  string diagnosis = 4;       
-  string treatment_plan = 5;  
-  repeated MedicineItem medicines = 6;
-  repeated TreatmentItem treatments = 7;
+  int32 booking_id = 2;
+  string reason = 3;     
+  string symptoms = 4;        
+  string diagnosis = 5;       
+  string treatment_plan = 6;  
+  repeated MedicineItem medicines = 7;
+  repeated TreatmentItem treatments = 8;
+  string re_exam_date = 9;
 }
 
 message TreatmentItem {
