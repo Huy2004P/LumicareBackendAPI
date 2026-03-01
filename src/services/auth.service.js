@@ -1,6 +1,7 @@
 const userRepo = require("../repositories/user.repo");
 const bcrypt = require("bcryptjs");
 const { generateToken, generateRefreshToken } = require("../utils/jwt.util");
+const { sendWelcomeEmail, sendOTPEmail } = require("../utils/mailer");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_123";
@@ -36,6 +37,13 @@ class AuthService {
       gender,
       address
     });
+
+    if (userId) {
+      // Chạy hàm gửi mail ngầm (asynchronous) để không làm chậm request gRPC
+      sendWelcomeEmail(email, fullName || "Người dùng mới")
+        .then(() => console.log(`[Mailer] Đã gửi mail thành công tới: ${email}`))
+        .catch((err) => console.error("[Mailer] Lỗi gửi mail (nhưng vẫn cho user đăng ký):", err));
+    }
 
     const tokens = this.generateTokens({ id: userId, role: userRole });
     return {
@@ -79,13 +87,58 @@ class AuthService {
 
   async logout() { return { success: true, message: "Đã đăng xuất" }; }
 
-  async forgotPassword(email) { return "OTP 123456"; }
+  // Trong AuthService.js (hàm forgotPassword)
+  async forgotPassword(email) {
+      const user = await userRepo.findByEmail(email);
+      if (!user) throw new Error("Email không tồn tại!");
+
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiredAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút sau
+
+      if (user && user.otp_expired_at) {
+          const remainingTime = new Date(user.otp_expired_at) - Date.now();
+          const totalDuration = 5 * 60 * 1000; // 5 phút
+          
+          // Nếu mới gửi chưa được 1 phút (còn hơn 4 phút hạn) thì không cho gửi tiếp
+          if (remainingTime > (totalDuration - 60000)) {
+              throw new Error("Vui lòng đợi 60 giây trước khi yêu cầu mã mới!");
+          }
+      }
+
+      // LƯU VÀO DATABASE (Ông cần viết thêm hàm này trong user.repo.js)
+      await userRepo.updateOTP(email, otpCode, expiredAt); 
+
+      await sendOTPEmail(email, otpCode);
+      return { success: true, message: "Mã OTP đã được gửi!" };
+  }
 
   async resetPassword(email, otp, newPass) {
+    // 1. Tìm user và mã OTP trong DB
+    const user = await userRepo.findOTPByEmail(email);
+    
+    if (!user || !user.otp_code) {
+        throw new Error("Yêu cầu khôi phục không tồn tại!");
+    }
+
+    // 2. So khớp mã OTP
+    if (user.otp_code !== otp) {
+        throw new Error("Mã OTP không chính xác!");
+    }
+
+    // 3. Kiểm tra hết hạn (Expired)
+    if (new Date() > new Date(user.otp_expired_at)) {
+        throw new Error("Mã OTP đã hết hạn!");
+    }
+
+    // 4. Nếu mọi thứ OK -> Hash mật khẩu mới và lưu lại
     const hashed = await bcrypt.hash(newPass, 10);
     await userRepo.updatePasswordByEmail(email, hashed);
-    return "Thành công!";
-  }
+
+    // 5. Xóa OTP sau khi dùng xong (để bảo mật)
+    await userRepo.clearOTP(email);
+
+    return "Đổi mật khẩu thành công!";
+}
 }
 
 module.exports = new AuthService();

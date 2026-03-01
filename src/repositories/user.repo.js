@@ -140,6 +140,32 @@ class UserRepository {
     );
     return result.affectedRows > 0;
   }
+
+  // 1. Hàm lưu OTP và thời gian hết hạn vào DB
+  async updateOTP(email, code, expiredAt) {
+    const query = "UPDATE users SET otp_code = ?, otp_expired_at = ? WHERE email = ?";
+    // Lưu ý: expiredAt phải là kiểu Date hoặc chuỗi định dạng MySQL DATETIME
+    return db.execute(query, [code, expiredAt, email]);
+  }
+
+  // 2. Hàm tìm OTP để so khớp (Dùng trong ResetPassword)
+  async findOTPByEmail(email) {
+    const query = "SELECT id, email, otp_code, otp_expired_at FROM users WHERE email = ?";
+    const [rows] = await db.execute(query, [email]);
+    return rows[0]; // Trả về user kèm thông tin OTP
+  }
+
+  // 3. Hàm cập nhật mật khẩu mới và XÓA OTP (để mã không dùng lại được lần 2)
+  async updatePasswordByEmail(email, hashedPassword) {
+    const query = "UPDATE users SET password = ?, otp_code = NULL, otp_expired_at = NULL WHERE email = ?";
+    return db.execute(query, [hashedPassword, email]);
+  }
+
+  // Hàm xóa OTP sau khi đã sử dụng thành công
+  async clearOTP(email) {
+    const query = "UPDATE users SET otp_code = NULL, otp_expired_at = NULL WHERE email = ?";
+    return db.execute(query, [email]);
+  }
 }
 
 module.exports = new UserRepository();
