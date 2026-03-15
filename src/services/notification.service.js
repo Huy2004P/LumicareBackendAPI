@@ -1,36 +1,49 @@
 const notificationRepo = require("../repositories/notification.repo");
+const { sendRealtimeNotification } = require("../utils/notification.util");
 
 class NotificationService {
   
-  // --- INTERNAL USE (Các Service khác gọi hàm này) ---
-  // Ví dụ: bookingService gọi await notificationService.sendNotification(...)
+  // --- INTERNAL USE: Các Service khác gọi để thông báo cho User ---
   async sendNotification(userId, message, type = 'system') {
     if (!userId) return; 
     
-    // Gọi Repo lưu vào DB
-    // Lưu ý: Ta gộp tiêu đề và nội dung vào cột 'message' vì DB chỉ có 1 cột
-    await notificationRepo.create({
-      user_id: userId,
-      message: message,
-      type: type
-    });
-    
-    console.log(`[NOTI] Sent to User ${userId}: ${message}`);
+    try {
+      // 1. Lưu vào Database (Lịch sử để xem lại)
+      await notificationRepo.create({
+        user_id: userId,
+        message: message,
+        type: type
+      });
+
+      // 2. Tự động xác định tiêu đề dựa trên loại (cho chuyên nghiệp)
+      const title = this._generateTitle(type);
+
+      // 3. Gửi tin thời gian thực qua Socket.io
+      sendRealtimeNotification(userId, title, message, type);
+
+    } catch (error) {
+      console.error(">>> [Notification Service Error]:", error);
+    }
   }
 
-  // --- API USE (Cho Handler gọi) ---
-  
-  // 1. Lấy danh sách
+  _generateTitle(type) {
+    const titles = {
+      'booking': 'Lịch hẹn mới 📅',
+      'treatment': 'Cập nhật điều trị 💊',
+      'system': 'Thông báo hệ thống 🔔'
+    };
+    return titles[type] || 'Thông báo mới';
+  }
+
+  // --- API USE: Cho gRPC Handler gọi ---
   async getMyNotifications(userId) {
     if (!userId) throw new Error("Thiếu User ID!");
     return await notificationRepo.getByUserId(userId);
   }
 
-  // 2. Đánh dấu đã xem
   async markAsRead(id) {
     if (!id) throw new Error("Thiếu ID thông báo!");
-    await notificationRepo.markAsRead(id);
-    return true;
+    return await notificationRepo.markAsRead(id);
   }
 }
 

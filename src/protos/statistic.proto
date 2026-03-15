@@ -1,43 +1,120 @@
 syntax = "proto3";
+
 package statistic;
 
 service StatisticService {
+  // Lấy dữ liệu tổng quan cho Admin Web
   rpc GetAdminDashboard (DashboardRequest) returns (AdminDashboardResponse);
+  
+  // Lấy dữ liệu hiệu suất cho Bác sĩ (App/Web)
   rpc GetDoctorDashboard (DashboardRequest) returns (DoctorDashboardResponse);
 }
 
 message DashboardRequest {
-  string from_date = 1;
-  string to_date = 2;
-  int32 doctor_id = 3;
+  string from_date = 1;  // Định dạng YYYY-MM-DD
+  string to_date = 2;    // Định dạng YYYY-MM-DD
+  int32 doctor_id = 3;   // Bắt buộc khi gọi GetDoctorDashboard
 }
 
-// Mở rộng Admin Dashboard
+// --- ADMIN DASHBOARD RESPONSE ---
 message AdminDashboardResponse {
-  int32 total_doctors = 1;
-  int32 total_patients = 2;
-  int32 total_bookings = 3;
-  double total_revenue = 4;
-  double growth_rate = 5; // Tỷ lệ tăng trưởng %
-  int32 cancelled_bookings = 6;
-  repeated ChartData revenue_by_month = 7;
-  repeated TopDoctor top_doctors = 8;
-  repeated TopService top_services = 9;
+  bool success = 1;
+  
+  // 1. Chỉ số tổng quát (Cards)
+  int32 total_doctors = 2;
+  int32 total_patients = 3;
+  int32 total_bookings = 4;
+  double total_revenue = 5;       // Doanh thu thực tế (Completed)
+  double growth_rate = 6;         // % tăng trưởng
+
+  // 2. Trạng thái vận hành (Pie Charts)
+  BookingStatusStats booking_status_breakdown = 7;
+  repeated SpecialtyDistribution specialty_stats = 8;
+
+  // 3. Biểu đồ xu hướng (Line/Bar Charts)
+  repeated ChartData revenue_by_month = 9;
+  repeated ChartData patient_growth_trend = 10;
+
+  // 4. Bảng xếp hạng (Tables)
+  repeated TopDoctor top_doctors = 11;
+  repeated TopService top_services = 12;
+
+  // 5. Phân tích chuyên sâu (Analytics)
+  PatientDemographics demographics = 13;
+  double overall_satisfaction_rate = 14; 
 }
 
-// Mở rộng Doctor Dashboard
+// --- DOCTOR DASHBOARD RESPONSE ---
 message DoctorDashboardResponse {
-  int32 total_patients_today = 1;
-  int32 pending_bookings = 2;
-  int32 completed_bookings = 3;
-  int32 cancelled_bookings = 4;
-  double total_revenue = 5;
-  double average_rating = 6; // Đánh giá trung bình
-  repeated ChartData weekly_activity = 7;
-  repeated RecentBooking recent_bookings = 8;
+  bool success = 1;
+  
+  // 1. Hiệu suất trong ngày & Trạng thái
+  int32 total_patients_today = 2;
+  int32 pending_bookings = 3;
+  int32 completed_bookings = 4;
+  int32 cancelled_bookings = 5;
+  
+  // 2. Chỉ số cá nhân & Tài chính
+  double total_revenue = 6;      // Tiền thực thu từ các ca đã khám
+  double average_rating = 7;
+  int32 total_feedbacks = 8;
+
+  // 3. Biểu đồ & Lịch sử
+  repeated ChartData weekly_activity = 9; 
+  repeated RecentBooking recent_bookings = 10;
+  repeated PatientAgeGroup patient_age_groups = 11;
 }
 
-message TopDoctor { string name = 1; int32 total_done = 2; double revenue = 3; }
-message TopService { string name = 1; int32 usage_count = 2; }
-message RecentBooking { string patient_name = 1; string time = 2; string status = 3; }
-message ChartData { string label = 1; double value = 2; }
+// --- CÁC MESSAGE CẤU TRÚC DỮ LIỆU ---
+
+message BookingStatusStats {
+  int32 pending = 1;
+  int32 confirmed = 2;
+  int32 finished = 3;
+  int32 cancelled = 4;
+}
+
+message SpecialtyDistribution {
+  string specialty_name = 1;
+  int32 doctor_count = 2;
+  int32 booking_count = 3;
+  double revenue = 4; // Thêm trường này để biết khoa nào kiếm nhiều tiền
+}
+
+message PatientDemographics {
+  int32 male_count = 1;
+  int32 female_count = 2;
+  int32 other_count = 3;
+}
+
+message PatientAgeGroup {
+  string group_name = 1; // "0-18", "19-45", "45+"
+  int32 count = 2;
+}
+
+message TopDoctor { 
+  int32 id = 1;
+  string name = 2; 
+  int32 total_done = 3; 
+  double revenue = 4; 
+  double rating = 5;
+}
+
+message TopService { 
+  string name = 1; 
+  int32 usage_count = 2; 
+  double revenue_generated = 3; // Tổng tiền dịch vụ này mang lại
+}
+
+message RecentBooking { 
+  int32 id = 1;
+  string patient_name = 2; 
+  string time = 3; 
+  string status = 4; 
+  string service_name = 5;
+}
+
+message ChartData { 
+  string label = 1; 
+  double value = 2; 
+}

@@ -1,23 +1,35 @@
 const bookingRepo = require("../repositories/booking.repo");
 const profileRepo = require("../repositories/patientProfile.repo");
+const notificationService = require("./notification.service");
+const appointmentRepo = require("../repositories/appointment.repo");
 
 class BookingService {
   async createBooking(data) {
     const inputId = data.patient_id || data.patientId;
     
-    // 1. Thử tìm PatientId thông qua UserId (Dành cho App truyền UserId lên)
+    // Tìm PatientId chuẩn
     let actualPatientId = await profileRepo.getPatientIdByUserId(inputId);
-    
-    // 2. Nếu không tìm thấy (có thể ông đang truyền trực tiếp PatientId từ Kreya)
-    // Thì dùng luôn cái inputId đó để đặt lịch
-    if (!actualPatientId) {
-        actualPatientId = inputId;
-    }
+    if (!actualPatientId) actualPatientId = inputId;
 
-    return await bookingRepo.createBookingTransaction({ 
+    const bookingId = await bookingRepo.createBookingTransaction({ 
       ...data, 
       patient_id: actualPatientId 
     });
+
+    // --- GỬI TIN CHO BÁC SĨ ---
+    try {
+        // Giả sử ông có hàm lấy UserID của bác sĩ từ DoctorID
+        const doctorInfo = await appointmentRepo.getDoctorUserById(data.doctor_id);
+        if (doctorInfo && doctorInfo.user_id) {
+            await notificationService.sendNotification(
+                doctorInfo.user_id, 
+                `Bạn có một lịch hẹn khám tại nhà mới từ bệnh nhân! 📅`, 
+                'booking'
+            );
+        }
+    } catch (e) { console.error("Lỗi báo tin cho bác sĩ:", e); }
+
+    return bookingId;
   }
 
   // BookingService.js
@@ -33,7 +45,21 @@ class BookingService {
   }
 
   async cancelBooking(bookingId, patientId) {
-    return await bookingRepo.cancelBooking(bookingId, patientId);
+    const isCanceled = await bookingRepo.cancelBooking(bookingId, patientId);
+    
+    if (isCanceled) {
+        try {
+            const bookingInfo = await appointmentRepo.getBookingById(bookingId);
+            if (bookingInfo && bookingInfo.doctor_user_id) {
+                await notificationService.sendNotification(
+                    bookingInfo.doctor_user_id, 
+                    "Một bệnh nhân đã hủy lịch hẹn khám. Vui lòng kiểm tra lại danh sách! ⚠️", 
+                    'system'
+                );
+            }
+        } catch (e) { console.error("Lỗi báo hủy cho bác sĩ:", e); }
+    }
+    return isCanceled;
   }
 
   async deleteBooking(bookingId) {

@@ -2,6 +2,43 @@ require("dotenv").config();
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const path = require("path");
+const { Server } = require('socket.io');
+const http = require("http");
+
+// --- CẤU HÌNH SOCKET.IO ---
+// Tạo một HTTP Server riêng cho Socket.io
+const httpServer = http.createServer();
+const io = new Server(httpServer, {
+  cors: { origin: "*" } // Cho phép Flutter kết nối
+});
+
+io.on("connection", (socket) => {
+  console.log(">>> [Socket] Có thiết bị kết nối:", socket.id);
+
+  // Trong server.js
+  socket.on("register", (userId) => {
+    // Lọc bỏ dấu nháy kép nếu tool hoặc app gửi nhầm format chuỗi JSON
+    const cleanId = String(userId).replace(/['"]+/g, ''); 
+    const roomName = `user_${cleanId}`;
+    
+    socket.join(roomName);
+    console.log(`>>> [Socket] User ${cleanId} đã join phòng: ${roomName}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log(">>> [Socket] Thiết bị ngắt kết nối.");
+  });
+});
+
+// Chạy HTTP Server cho Socket.io
+const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
+
+httpServer.listen(SOCKET_PORT, () => {
+  console.log(`Socket.io đang chạy tại port: ${SOCKET_PORT}`);
+});
+
+// Export io để các Handler/Service có thể gọi
+global._io = io;
 
 // 1. Import các Handler (Logic xử lý)
 const authHandler = require("./handlers/auth.handler");
@@ -179,6 +216,7 @@ const feedbackPackage = loadProto("feedback.proto").feedback;
 server.addService(feedbackPackage.FeedbackService.service, {
   SendFeedback: feedbackHandler.SendFeedback,
   GetDoctorFeedbacks: feedbackHandler.GetDoctorFeedbacks,
+  GetAllFeedbacks: feedbackHandler.GetAllFeedbacks,
 });
 // KHỞI ĐỘNG SERVER
 

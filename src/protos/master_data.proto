@@ -125,31 +125,33 @@ message RoomListResponse { repeated RoomResponse data = 1; }
 message CreateServiceRequest { 
     string name = 1; 
     double price = 2; 
-    int32 specialtyId = 3;
+    int32 specialty_id = 3; // Đồng bộ snake_case với DB
     string description = 4; 
     string image = 5; 
-    string contentHtml = 6;     // Đổi content_html -> contentHtml
-    string contentMarkdown = 7; // Đổi content_markdown -> contentMarkdown
+    string content_html = 6; 
+    string content_markdown = 7;
 }
 
 message UpdateServiceRequest { 
     int32 id = 1; 
     string name = 2; 
     double price = 3; 
-    int32 specialtyId = 4;
+    int32 specialty_id = 4; // Đồng bộ
     string description = 5; 
     string image = 6; 
-    string contentHtml = 7;     // Đổi content_html -> contentHtml
-    string contentMarkdown = 8; // Đổi content_markdown -> contentMarkdown
+    string content_html = 7; 
+    string content_markdown = 8;
 }
+
 message ServiceResponse { 
     int32 id = 1; 
     string name = 2; 
     double price = 3; 
-    string description = 4; 
-    string image = 5; 
-    string content_html = 6; 
-    string content_markdown = 7; 
+    int32 specialty_id = 4;
+    string description = 5; 
+    string image = 6; 
+    string content_html = 7; 
+    string content_markdown = 8; 
 }
 message ServiceListResponse { repeated ServiceResponse data = 1; int32 total_count = 2; }
 

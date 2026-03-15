@@ -10,6 +10,7 @@ service NotificationService {
   rpc MarkAsRead (MarkAsReadRequest) returns (StatusResponse);
 }
 
+// Dùng chung cho các phản hồi trạng thái đơn giản
 message StatusResponse { 
   bool success = 1; 
   string message = 2; 
@@ -26,13 +27,15 @@ message MarkAsReadRequest {
 message NotificationItem {
   int32 id = 1;
   int32 user_id = 2;
-  string message = 3; // Database chỉ có cột message
-  string type = 4;
-  bool is_read = 5;
-  string created_at = 6;
+  string title = 3;   // <-- THÊM DÒNG NÀY: Để Flutter hiện tiêu đề in đậm
+  string message = 4; 
+  string type = 5;
+  bool is_read = 6;
+  string created_at = 7;
 }
 
 message NotificationListResponse {
   bool success = 1;
-  repeated NotificationItem data = 2;
+  string message = 2; // <-- THÊM DÒNG NÀY: Để báo "Lấy danh sách thành công"
+  repeated NotificationItem data = 3;
 }

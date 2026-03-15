@@ -151,9 +151,19 @@ class MasterDataRepo {
     return rows;
   }
 
-  async getAllServices() {
-    const [rows] = await db.execute("SELECT * FROM services WHERE is_deleted = 0 ORDER BY id DESC");
-    return { data: rows };
+    async getAllServices() {
+      const sql = `
+          SELECT 
+              id, name, price, description, image, 
+              specialty_id AS specialtyId, -- ĐỔI TÊN Ở ĐÂY CHO KHỚP PROTO
+              content_html AS contentHtml, 
+              content_markdown AS contentMarkdown 
+          FROM services 
+          WHERE is_deleted = 0 
+          ORDER BY id DESC
+      `;
+      const [rows] = await db.execute(sql);
+      return { data: rows };
   }
 
   async updateService(data) {
