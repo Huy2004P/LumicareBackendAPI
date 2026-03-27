@@ -1,12 +1,18 @@
 const bookingService = require("../services/booking.service");
 
 module.exports = {
+  // 1. Đặt lịch khám mới
   CreateBooking: async (call, callback) => {
     try {
+      // call.request lúc này đã có .address từ Proto truyền xuống
       const id = await bookingService.createBooking(call.request);
-      callback(null, { success: true, message: "Thành công!", booking_id: id });
-    } catch (e) { callback({ code: 13, message: e.message }); }
+      callback(null, { success: true, message: "Đặt lịch thành công!", booking_id: id });
+    } catch (e) { 
+      callback({ code: 13, message: e.message }); 
+    }
   },
+
+  // 2. Lấy danh sách lịch sử đặt lịch
   GetBookingHistory: async (call, callback) => {
     try {
       const userId = call.request.patient_id || call.request.patientId;
@@ -16,48 +22,51 @@ module.exports = {
         success: true, 
         data: res.map(i => ({
           id: i.id,
-          doctor_name: i.doctor_name,    // Sửa thành doctor_name (khớp .proto)
-          date: i.date.toString(),
-          time_display: i.time_display,  // Sửa thành time_display (khớp .proto)
+          doctor_name: i.doctor_name,
+          // Format lại ngày cho đẹp yyyy-mm-dd
+          date: i.date instanceof Date ? i.date.toISOString().split('T')[0] : i.date.toString(),
+          time_display: i.time_display,
           status: i.status,
           reason: i.reason,
-          patient_name: i.patient_name || "Bản thân", // Sửa thành patient_name
-          service_name: i.service_name || "Khám lẻ",  // Sửa thành service_name
-          price: parseFloat(i.booking_price) || 0
+          patient_name: i.patient_name || "Bản thân",
+          service_name: i.service_name || "Khám lẻ",
+          price: parseFloat(i.booking_price) || 0,
+          // BỔ SUNG: Trả thêm address về cho App hiển thị
+          address: i.address || "" 
         }))
       });
     } catch (e) { 
       callback({ code: 13, message: e.message }); 
     }
   },
+
+  // 3. Hủy đơn hàng (Bệnh nhân thực hiện)
   CancelBooking: async (call, callback) => {
     try {
-      // Lấy ID từ request để trả ngược lại cho App biết đơn nào vừa hủy
-      const bookingId = call.request.booking_id; 
+      const bookingId = call.request.booking_id || call.request.bookingId; 
       
       await bookingService.cancelBooking(bookingId, call.request.patient_id);
       
       callback(null, { 
         success: true, 
-        message: "Đã hủy lịch!",
-        booking_id: bookingId // ✅ Thêm dòng này để Kreya hiện đúng ID
+        message: "Đã hủy lịch khám thành công!",
+        booking_id: bookingId 
       });
     } catch (e) { 
       callback({ code: 13, message: e.message }); 
     }
   },
+
+  // 4. Xóa đơn hàng (Admin/Xóa ảo)
   DeleteBooking: async (call, callback) => {
     try {
-      // 1. Lấy ID từ request ra trước
-      const bookingId = call.request.booking_id;
+      const bookingId = call.request.booking_id || call.request.bookingId;
       
-      // 2. Chạy logic xóa trong Service
       await bookingService.deleteBooking(bookingId);
       
-      // 3. Trả về đúng cái ID vừa xóa để Kreya không bị hiện số 0
       callback(null, { 
         success: true, 
-        message: "Đã xóa thành công!", 
+        message: "Đã xóa lịch sử đơn hàng thành công!", 
         booking_id: bookingId 
       });
     } catch (e) { 

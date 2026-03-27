@@ -1,7 +1,8 @@
 const userRepo = require("../repositories/user.repo");
 const bcrypt = require("bcryptjs");
-const { generateToken, generateRefreshToken } = require("../utils/jwt.util");
-const { sendWelcomeEmail, sendOTPEmail } = require("../utils/mailer");
+const { generateToken, generateRefreshToken, verifyRefreshToken } = require("../utils/jwt.util");
+const { sendWelcomeEmail, sendOTPEmail, sendChangePasswordNotification } = require("../utils/mailer");
+const jwt = require("jsonwebtoken");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_123";
@@ -14,17 +15,16 @@ class AuthService {
   }
 
   async register(data) {
-    // LOG ĐỂ KIỂM TRA: Xem Kreya gửi gì xuống đây
     console.log(">>> Dữ liệu Register nhận được:", data);
 
-    const { email, password, role, fullName, phone, gender, address } = data;
+    // 🚀 SỬA TẠI ĐÂY: Thêm birthday vào để lấy ra từ data
+    const { email, password, role, fullName, phone, gender, address, birthday } = data;
 
     const existingUser = await userRepo.findByEmail(email);
     if (existingUser) throw new Error("Email đã tồn tại!");
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Ép kiểu: Nếu có role thì dùng, không thì mới lấy patient
     const userRole = role ? role.toLowerCase() : 'patient';
     console.log(">>> Role sẽ được lưu vào DB:", userRole);
 
@@ -35,20 +35,26 @@ class AuthService {
       fullName,
       phone,
       gender,
-      address
+      address,
+      birthday // 🚀 PHẢI TRUYỀN THẰNG NÀY XUỐNG REPO THÌ NÓ MỚI LƯU ĐƯỢC
     });
 
     if (userId) {
-      // Chạy hàm gửi mail ngầm (asynchronous) để không làm chậm request gRPC
       sendWelcomeEmail(email, fullName || "Người dùng mới")
         .then(() => console.log(`[Mailer] Đã gửi mail thành công tới: ${email}`))
-        .catch((err) => console.error("[Mailer] Lỗi gửi mail (nhưng vẫn cho user đăng ký):", err));
+        .catch((err) => console.error("[Mailer] Lỗi gửi mail:", err));
     }
 
     const tokens = this.generateTokens({ id: userId, role: userRole });
     return {
       ...tokens,
-      user: { id: userId, email, role: userRole, fullName: fullName || "Người dùng mới" }
+      user: { 
+        id: userId, 
+        email, 
+        role: userRole, 
+        fullName: fullName || "Người dùng mới",
+        birthday: birthday || "" // Trả về luôn cho nóng
+      }
     };
   }
 
@@ -60,10 +66,7 @@ class AuthService {
       throw new Error("Mật khẩu sai!");
     }
 
-    // 1. Lấy thông tin full (đã join bảng doctor/patient)
     const userInfo = await userRepo.getUserFullInfo(user.id, user.role);
-
-    // 2. Dùng hàm generateTokens (CÓ S TRONG FILE CỦA ÔNG)
     const tokens = this.generateTokens({ id: user.id, role: user.role });
 
     return {
@@ -74,16 +77,17 @@ class AuthService {
         role: userInfo.role,
         fullName: userInfo.fullName || "",
         phone: userInfo.phone || "",
-        avatar: userInfo.avatar || ""
+        avatar: userInfo.avatar || "",
+        birthday: userInfo.birthday || "" // 🚀 THÊM DÒNG NÀY ĐỂ APP CÓ DATA HIỆN LÊN PROFILE
       }
     };
   }
 
   async refreshToken(token) {
-    if (!token) throw new Error("Token trống!");
-    const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET);
-    return this.generateTokens({ id: decoded.id, role: decoded.role });
-  }
+  if (!token) throw new Error("Token trống!");
+  const decoded = verifyRefreshToken(token); 
+  return this.generateTokens({ id: decoded.id, role: decoded.role });
+}
 
   async logout() { return { success: true, message: "Đã đăng xuất" }; }
 
@@ -112,33 +116,47 @@ class AuthService {
       return { success: true, message: "Mã OTP đã được gửi!" };
   }
 
-  async resetPassword(email, otp, newPass) {
-    // 1. Tìm user và mã OTP trong DB
+  async verifyOTP(email, otp) {
     const user = await userRepo.findOTPByEmail(email);
     
     if (!user || !user.otp_code) {
-        throw new Error("Yêu cầu khôi phục không tồn tại!");
+        throw new Error("Yêu cầu xác thực không tồn tại!");
     }
 
-    // 2. So khớp mã OTP
     if (user.otp_code !== otp) {
         throw new Error("Mã OTP không chính xác!");
     }
 
-    // 3. Kiểm tra hết hạn (Expired)
     if (new Date() > new Date(user.otp_expired_at)) {
         throw new Error("Mã OTP đã hết hạn!");
     }
 
-    // 4. Nếu mọi thứ OK -> Hash mật khẩu mới và lưu lại
+    return { success: true, message: "Xác thực mã OTP thành công!" };
+  }
+
+  async resetPassword(email, otp, newPass) {
+    // 1. Kiểm tra OTP trước
+    await this.verifyOTP(email, otp);
+
+    // 2. Hash mật khẩu mới
     const hashed = await bcrypt.hash(newPass, 10);
-    await userRepo.updatePasswordByEmail(email, hashed);
+    
+    // 3. Cập nhật DB
+    const success = await userRepo.updatePasswordByEmail(email, hashed);
 
-    // 5. Xóa OTP sau khi dùng xong (để bảo mật)
-    await userRepo.clearOTP(email);
+    if (success) {
+        // 🚀 SỬA TẠI ĐÂY: Gọi đúng hàm thông báo thành công (Design Gradient)
+        sendChangePasswordNotification(email, "bạn")
+          .catch((err) => console.error("[Mailer] Lỗi gửi mail thông báo:", err));
 
-    return "Đổi mật khẩu thành công!";
-}
+        return { 
+            success: true, 
+            message: "Mật khẩu đã được cập nhật thành công!" 
+        };
+    }
+
+    throw new Error("Không thể cập nhật mật khẩu, vui lòng thử lại!");
+  }
 }
 
 module.exports = new AuthService();

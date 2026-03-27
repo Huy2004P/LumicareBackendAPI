@@ -22,15 +22,17 @@ class AppointmentService {
 
     try {
       const bookingInfo = await appointmentRepo.getBookingById(bookingId);
-      if (bookingInfo && bookingInfo.user_id) {
-        let msg = "";
-        if (finalStatus === 'confirmed') msg = "Lịch khám của bạn đã được bác sĩ xác nhận! ✅";
-        if (finalStatus === 'arrived') msg = "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị! 🏠";
-        if (finalStatus === 'canceled') msg = "Rất tiếc, bác sĩ đã hủy lịch khám của bạn. ❌";
+      const statusMessages = {
+        'confirmed': "Lịch khám của bạn đã được bác sĩ xác nhận! ✅",
+        'arrived': "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị! 🏠",
+        'canceled': "Rất tiếc, bác sĩ đã hủy lịch khám của bạn. ❌",
+        'finished': "Buổi khám đã kết thúc. Cảm ơn bạn đã tin tưởng! ✨"
+    };
 
-        // GỬI TIN CHO BỆNH NHÂN
+    const msg = statusMessages[finalStatus];
+    if (msg && bookingInfo.user_id) {
         await notificationService.sendNotification(bookingInfo.user_id, msg, 'booking');
-      }
+    }
     } catch (notiError) { console.error("Lỗi gửi thông báo:", notiError); }
     return true;
   }

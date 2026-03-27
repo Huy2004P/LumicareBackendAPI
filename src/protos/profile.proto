@@ -3,18 +3,14 @@ syntax = "proto3";
 package profile;
 
 service ProfileService {
-  // 1. Xem thông tin (GET /api/profile)
-  // Không cần tham số đầu vào vì lấy ID từ Token
   rpc GetMyProfile (Empty) returns (UserProfileResponse);
-
-  // 2. Cập nhật thông tin (PUT /api/profile)
   rpc UpdateProfile (UpdateProfileRequest) returns (UserProfileResponse);
-
-  // 3. Đổi mật khẩu (PUT /api/profile/password)
+  
+  rpc RequestChangePasswordOTP (Empty) returns (StatusResponse);
+  
   rpc ChangePassword (ChangePasswordRequest) returns (StatusResponse);
 }
 
-// --- Messages ---
 message Empty {}
 
 message StatusResponse {
@@ -22,7 +18,6 @@ message StatusResponse {
   string message = 2;
 }
 
-// Thông tin hiển thị (kết hợp User + Patient)
 message UserProfileResponse {
   int32 id = 1;
   string email = 2;
@@ -31,16 +26,18 @@ message UserProfileResponse {
   string phone = 5;
   string avatar = 6;
   string createdAt = 7; 
+  string birthday = 8;
 }
 
-// Input để update (chỉ được sửa 3 cái này)
 message UpdateProfileRequest {
   string fullName = 1;
   string phone = 2;
   string avatar = 3;
+  string birthday = 4;
 }
 
 message ChangePasswordRequest {
   string oldPassword = 1;
   string newPassword = 2;
+  string otp = 3; 
 }

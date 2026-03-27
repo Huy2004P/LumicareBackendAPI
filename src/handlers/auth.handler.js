@@ -1,8 +1,12 @@
 const authService = require("../services/auth.service");
 
+/**
+ * Helper bọc lỗi chuẩn cho gRPC
+ */
 const safeCall = async (callback, func) => {
   try {
-    const result = await func();
+    // 🚀 QUAN TRỌNG: Phải await func() để lấy kết quả thực tế
+    const result = await func(); 
     callback(null, result);
   } catch (error) {
     console.error("Auth Handler Error:", error);
@@ -10,25 +14,51 @@ const safeCall = async (callback, func) => {
   }
 };
 
-const register = (call, callback) => safeCall(callback, () => authService.register(call.request));
-const login = (call, callback) => safeCall(callback, () => authService.login(call.request.email, call.request.password));
-const refreshToken = (call, callback) => safeCall(callback, () => authService.refreshToken(call.request.refreshToken));
-const logout = (call, callback) => safeCall(callback, () => authService.logout());
+module.exports = {
+  // 1. Đăng ký
+  register: (call, callback) => {
+    safeCall(callback, async () => await authService.register(call.request));
+  },
 
-const forgotPassword = (call, callback) => {
-  safeCall(callback, async () => {
-    const msg = await authService.forgotPassword(call.request.email);
-    return { success: true, message: msg };
-  });
+  // 2. Đăng nhập
+  login: (call, callback) => {
+    const { email, password } = call.request;
+    safeCall(callback, async () => await authService.login(email, password));
+  },
+
+  // 3. Refresh Token
+  refreshToken: (call, callback) => {
+    const { refreshToken } = call.request;
+    safeCall(callback, async () => await authService.refreshToken(refreshToken));
+  },
+
+  // 4. Đăng xuất
+  logout: (call, callback) => {
+    safeCall(callback, async () => await authService.logout());
+  },
+
+  // 5. Quên mật khẩu
+  forgotPassword: (call, callback) => {
+    safeCall(callback, async () => {
+      // Đảm bảo authService.forgotPassword trả về { success, message }
+      return await authService.forgotPassword(call.request.email);
+    });
+  },
+
+  // 6. Xác thực mã OTP (Fix lỗi response rỗng)
+  VerifyOTP: (call, callback) => {
+    const { email, otp } = call.request;
+    safeCall(callback, async () => {
+      return await authService.verifyOTP(email, otp);
+    });
+  },
+
+  // 7. Reset Password
+  resetPassword: (call, callback) => {
+    safeCall(callback, async () => {
+      const { email, otp, new_password } = call.request;
+      // Truyền new_password xuống Service
+      return await authService.resetPassword(email, otp, new_password);
+    });
+  }
 };
-
-const resetPassword = (call, callback) => {
-  safeCall(callback, async () => {
-    // PHẢI LÀ new_password ĐÚNG THEO FILE .PROTO CỦA ÔNG
-    const { email, otp, new_password } = call.request;
-    const msg = await authService.resetPassword(email, otp, new_password);
-    return { success: true, message: msg };
-  });
-};
-
-module.exports = { register, login, refreshToken, logout, forgotPassword, resetPassword };

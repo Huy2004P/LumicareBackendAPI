@@ -3,42 +3,39 @@ syntax = "proto3";
 package master_data;
 
 service MasterDataService {
-    // 1. Chuyen Khoa (Specialty)
     rpc CreateSpecialty(CreateSpecialtyRequest) returns (SpecialtyResponse);
     rpc UpdateSpecialty(UpdateSpecialtyRequest) returns (SpecialtyResponse);
     rpc DeleteSpecialty(DeleteRequest) returns (StatusResponse);
     rpc GetSpecialtyById(GetByIdRequest) returns (SpecialtyResponse);
     rpc GetAllSpecialties (SearchRequest) returns (SpecialtyListResponse);
 
-    // 2. Co So/ Benh Vien (Clinic)
     rpc CreateClinic (CreateClinicRequest) returns (ClinicResponse);
     rpc UpdateClinic (UpdateClinicRequest) returns (ClinicResponse);
     rpc DeleteClinic (DeleteRequest) returns (StatusResponse);
     rpc GetClinicById (GetByIdRequest) returns (ClinicResponse);
     rpc GetAllClinics (SearchRequest) returns (ClinicListResponse);
 
-    // 3. Phong kham cu the (Room)
     rpc CreateRoom (CreateRoomRequest) returns (RoomResponse);
     rpc UpdateRoom (UpdateRoomRequest) returns (RoomResponse);
     rpc DeleteRoom (DeleteRequest) returns (StatusResponse);
     rpc GetRoomById (GetByIdRequest) returns (RoomResponse); 
     rpc GetAllRooms (RoomFilterRequest) returns (RoomListResponse);
+    rpc GetRoomsByClinicId (GetByIdRequest) returns (RoomListResponse);
 
-    // 4. Dich vu (Service)
     rpc CreateService (CreateServiceRequest) returns (ServiceResponse);
     rpc UpdateService (UpdateServiceRequest) returns (ServiceResponse);
     rpc DeleteService (DeleteRequest) returns (StatusResponse);
     rpc GetServiceById (GetByIdRequest) returns (ServiceResponse); 
     rpc GetAllServices (SearchRequest) returns (ServiceListResponse);
+    rpc GetDoctorsByService (GetByIdRequest) returns (DoctorListByServiceResponse);
+    rpc GetDoctorsByRoomId (GetByIdRequest) returns (DoctorListByServiceResponse);
 
-    // 5. Thuoc (Drugs)
     rpc CreateDrug (CreateDrugRequest) returns (DrugResponse);
     rpc UpdateDrug (UpdateDrugRequest) returns (DrugResponse);
     rpc DeleteDrug (DeleteRequest) returns (StatusResponse);
     rpc GetDrugById (GetByIdRequest) returns (DrugResponse);
     rpc GetAllDrugs (SearchRequest) returns (DrugListResponse);
 
-    // 6. ALLCODES
     rpc CreateAllCode (CreateAllCodeRequest) returns (AllCodeResponse);
     rpc UpdateAllCode (UpdateAllCodeRequest) returns (AllCodeResponse);
     rpc DeleteAllCode (DeleteRequest) returns (StatusResponse);
@@ -46,122 +43,52 @@ service MasterDataService {
     rpc GetAllCodes (GetAllCodesRequest) returns (AllCodeListResponse);
 }
 
-// --- Common Messages ---
 message StatusResponse { bool success = 1; string message = 2; }
 message GetByIdRequest { int32 id = 1; }
 message DeleteRequest { int32 id = 1; }
-message SearchRequest {
-    string keyword = 1; 
-    int32 limit = 2;    
-    int32 offset = 3;   
-}
+message SearchRequest { string keyword = 1; int32 limit = 2; int32 offset = 3; }
 
-// --- 1. Specialty ---
-message CreateSpecialtyRequest { 
-    string name = 1; 
-    string description = 2; 
-    string image = 3; 
-    string content_html = 4; 
-    string content_markdown = 5; 
-}
-message UpdateSpecialtyRequest { 
-    int32 id = 1; 
-    string name = 2; 
-    string description = 3; 
-    string image = 4; 
-    string content_html = 5; 
-    string content_markdown = 6; 
-}
-message SpecialtyResponse { 
-    int32 id = 1; 
-    string name = 2; 
-    string description = 3; 
-    string image = 4; 
-    string content_html = 5; 
-    string content_markdown = 6; 
-}
+message CreateSpecialtyRequest { string name = 1; string description = 2; string image = 3; string content_html = 4; string content_markdown = 5; }
+message UpdateSpecialtyRequest { int32 id = 1; string name = 2; string description = 3; string image = 4; string content_html = 5; string content_markdown = 6; }
+message SpecialtyResponse { int32 id = 1; string name = 2; string description = 3; string image = 4; string content_html = 5; string content_markdown = 6; }
 message SpecialtyListResponse { repeated SpecialtyResponse data = 1; int32 total_count = 2; }
 
-// --- 2. Clinic ---
-message CreateClinicRequest { 
-    string name = 1; 
-    string address = 2; 
-    string description = 3; 
-    string image = 4; 
-    string type = 5; 
-    string content_html = 6; 
-    string content_markdown = 7; 
-}
-message UpdateClinicRequest { 
-    int32 id = 1; 
-    string name = 2; 
-    string address = 3; 
-    string description = 4; 
-    string image = 5; 
-    string type = 6;
-    string content_html = 7; 
-    string content_markdown = 8; 
-}
-message ClinicResponse { 
-    int32 id = 1; 
-    string name = 2; 
-    string address = 3; 
-    string description = 4; 
-    string image = 5; 
-    string type = 6;
-    string content_html = 7; 
-    string content_markdown = 8; 
-}
+message CreateClinicRequest { string name = 1; string address = 2; string description = 3; string image = 4; string type = 5; string content_html = 6; string content_markdown = 7; }
+message UpdateClinicRequest { int32 id = 1; string name = 2; string address = 3; string description = 4; string image = 5; string type = 6; string content_html = 7; string content_markdown = 8; }
+message ClinicResponse { int32 id = 1; string name = 2; string address = 3; string description = 4; string image = 5; string type = 6; string content_html = 7; string content_markdown = 8; }
 message ClinicListResponse { repeated ClinicResponse data = 1; int32 total_count = 2; }
 
-// --- 3. Room ---
 message CreateRoomRequest { string name = 1; int32 clinicId = 2; string location = 3; string description = 4; }
 message UpdateRoomRequest { int32 id = 1; string name = 2; string location = 3; string description = 4; int32 clinicId = 5; }
 message RoomResponse { int32 id = 1; string name = 2; string clinicName = 3; int32 clinicId = 4; string location = 5; string description = 6; }
 message RoomFilterRequest { int32 clinicId = 1; string keyword = 2; }
 message RoomListResponse { repeated RoomResponse data = 1; }
 
-// --- 4. Service (Sửa lại tên biến cho khớp JSON Kreya) ---
-message CreateServiceRequest { 
-    string name = 1; 
-    double price = 2; 
-    int32 specialty_id = 3; // Đồng bộ snake_case với DB
-    string description = 4; 
-    string image = 5; 
-    string content_html = 6; 
-    string content_markdown = 7;
-}
-
-message UpdateServiceRequest { 
-    int32 id = 1; 
-    string name = 2; 
-    double price = 3; 
-    int32 specialty_id = 4; // Đồng bộ
-    string description = 5; 
-    string image = 6; 
-    string content_html = 7; 
-    string content_markdown = 8;
-}
-
-message ServiceResponse { 
-    int32 id = 1; 
-    string name = 2; 
-    double price = 3; 
-    int32 specialty_id = 4;
-    string description = 5; 
-    string image = 6; 
-    string content_html = 7; 
-    string content_markdown = 8; 
-}
+message CreateServiceRequest { string name = 1; double price = 2; int32 specialty_id = 3; string description = 4; string image = 5; string content_html = 6; string content_markdown = 7; }
+message UpdateServiceRequest { int32 id = 1; string name = 2; double price = 3; int32 specialty_id = 4; string description = 5; string image = 6; string content_html = 7; string content_markdown = 8; }
+message ServiceResponse { int32 id = 1; string name = 2; double price = 3; int32 specialty_id = 4; string description = 5; string image = 6; string content_html = 7; string content_markdown = 8; }
 message ServiceListResponse { repeated ServiceResponse data = 1; int32 total_count = 2; }
 
-// --- 5. Drugs ---
+// --- Định nghĩa cho Doctor By Service ---
+message DoctorInfo {
+    int32 id = 1;
+    string full_name = 2;   // Phải là full_name (giống DB)
+    string phone = 3;       // Phải là phone
+    string avatar = 4;      // Phải là avatar
+    string description = 5;
+    double price = 6;
+    string position = 7;
+    int32 specialty_id = 8;
+    int32 room_id = 9;
+    string specialty_name = 10;
+}
+message DoctorListByServiceResponse { bool success = 1; repeated DoctorInfo data = 2; }
+
 message CreateDrugRequest { string name = 1; string unit = 2; double price = 3; string description = 4; string content_html = 5; string content_markdown = 6; }
 message UpdateDrugRequest { int32 id = 1; string name = 2; string unit = 3; double price = 4; string description = 5; string content_html = 6; string content_markdown = 7; }
 message DrugResponse { int32 id = 1; string name = 2; string unit = 3; double price = 4; string description = 5; string content_html = 6; string content_markdown = 7; }
 message DrugListResponse { repeated DrugResponse data = 1; int32 total_count = 2; }
 
-// --- 6. AllCodes ---
 message CreateAllCodeRequest { string type = 1; string key = 2; string value_vi = 3;  string value_en = 4; }
 message UpdateAllCodeRequest { int32 id = 1; string type = 2; string key = 3; string value_vi = 4;  string value_en = 5; }
 message AllCodeResponse { int32 id = 1; string type = 2; string key = 3; string value_vi = 4; string value_en = 5; }

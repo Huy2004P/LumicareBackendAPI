@@ -108,6 +108,18 @@ class MasterDataRepo {
     return { data: rows };
   }
 
+  // HUY SOI KỸ HÀM NÀY: Dùng cho GetRoomsByClinicId
+  async getRoomsByClinicId(clinicId) {
+    const sql = `
+        SELECT r.id, r.name, r.clinic_id AS clinicId, r.location, r.description, c.name AS clinicName 
+        FROM rooms r 
+        LEFT JOIN clinics c ON r.clinic_id = c.id 
+        WHERE r.clinic_id = ? AND r.is_deleted = 0
+    `;
+    const [rows] = await db.execute(sql, [clinicId]);
+    return { data: rows };
+  }
+
   async updateRoom(data) {
     const sql = `UPDATE rooms SET name=?, clinic_id=?, location=?, description=? WHERE id=? AND is_deleted = 0`;
     const clinicId = data.clinicId || data.clinic_id;
@@ -126,57 +138,56 @@ class MasterDataRepo {
   async createService(data) {
     const sql = `INSERT INTO services (name, price, specialty_id, description, image, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`;
     const [result] = await db.execute(sql, [
-        data.name || null, 
-        data.price || 0, 
-        data.specialtyId || null, 
-        data.description || null, 
-        data.image || null, 
-        data.contentHtml || null, // Sửa từ content_html thành contentHtml
-        data.contentMarkdown || null // Sửa từ content_markdown thành contentMarkdown
+      data.name || null,
+      data.price || 0,
+      data.specialty_id || data.specialtyId || null,
+      data.description || null,
+      data.image || null,
+      data.content_html || data.contentHtml || null,
+      data.content_markdown || data.contentMarkdown || null
     ]);
     return this.getServiceById(result.insertId);
   }
 
   async getServiceById(id) {
-    const [rows] = await db.execute("SELECT * FROM services WHERE id = ? AND is_deleted = 0", [id]);
+    const sql = `
+      SELECT 
+        id, name, price, 
+        specialty_id as specialty_id, 
+        description, image, 
+        content_html as content_html, 
+        content_markdown as content_markdown 
+      FROM services 
+      WHERE id = ? AND is_deleted = 0`;
+    const [rows] = await db.execute(sql, [id]);
     return rows[0];
   }
 
-  async getServicesByIds(ids) {
-    if (!ids || ids.length === 0) return [];
-    // Biến mảng [1,2,3] thành chuỗi "1,2,3" để dùng lệnh IN trong SQL
-    const placeholders = ids.map(() => '?').join(',');
-    const sql = `SELECT id, name, specialty_id FROM services WHERE id IN (${placeholders}) AND is_deleted = 0`;
-    const [rows] = await db.execute(sql, ids);
-    return rows;
-  }
-
-    async getAllServices() {
-      const sql = `
-          SELECT 
-              id, name, price, description, image, 
-              specialty_id AS specialtyId, -- ĐỔI TÊN Ở ĐÂY CHO KHỚP PROTO
-              content_html AS contentHtml, 
-              content_markdown AS contentMarkdown 
-          FROM services 
-          WHERE is_deleted = 0 
-          ORDER BY id DESC
-      `;
-      const [rows] = await db.execute(sql);
-      return { data: rows };
+  async getAllServices() {
+    const sql = `
+      SELECT 
+        id, name, price, description, image, 
+        specialty_id as specialty_id, 
+        content_html as content_html, 
+        content_markdown as content_markdown 
+      FROM services 
+      WHERE is_deleted = 0 
+      ORDER BY id DESC`;
+    const [rows] = await db.execute(sql);
+    return { data: rows };
   }
 
   async updateService(data) {
     const sql = `UPDATE services SET name=?, price=?, specialty_id=?, description=?, image=?, content_html=?, content_markdown=? WHERE id=? AND is_deleted = 0`;
     await db.execute(sql, [
-        data.name || null, 
-        data.price || 0, 
-        data.specialtyId || null, 
-        data.description || null, 
-        data.image || null, 
-        data.contentHtml || null,      // Khớp với camelCase từ Proto
-        data.contentMarkdown || null,  // Khớp với camelCase từ Proto
-        data.id
+      data.name || null,
+      data.price || 0,
+      data.specialty_id || data.specialtyId || null,
+      data.description || null,
+      data.image || null,
+      data.content_html || data.contentHtml || null,
+      data.content_markdown || data.contentMarkdown || null,
+      data.id
     ]);
     return this.getServiceById(data.id);
   }
@@ -184,6 +195,51 @@ class MasterDataRepo {
   async deleteService(id) {
     await db.execute("UPDATE services SET is_deleted = 1 WHERE id = ?", [id]);
     return true;
+  }
+
+  // --- BẢNG TRUNG GIAN DOCTOR_SERVICES ---
+  async getDoctorsByServiceId(serviceId) {
+    const sql = `
+      SELECT 
+        d.id, 
+        d.full_name, 
+        d.phone, 
+        d.avatar, 
+        d.description, 
+        d.price, 
+        d.position, 
+        d.specialty_id, 
+        d.room_id,
+        s.name as specialty_name
+      FROM doctor_services ds
+      JOIN doctors d ON ds.doctor_id = d.id
+      LEFT JOIN specialties s ON d.specialty_id = s.id
+      WHERE ds.service_id = ? AND d.is_deleted = 0
+    `;
+    const [rows] = await db.execute(sql, [serviceId]);
+    return rows;
+  }
+
+  // HUY SOI KỸ HÀM NÀY: Lấy bác sĩ theo Phòng
+  async getDoctorsByRoomId(roomId) {
+    const sql = `
+      SELECT 
+        d.id, 
+        d.full_name, 
+        d.phone, 
+        d.avatar, 
+        d.description, 
+        d.price, 
+        d.position, 
+        d.specialty_id, 
+        d.room_id,
+        s.name as specialty_name
+      FROM doctors d
+      LEFT JOIN specialties s ON d.specialty_id = s.id
+      WHERE d.room_id = ? AND d.is_deleted = 0
+    `;
+    const [rows] = await db.execute(sql, [roomId]);
+    return rows;
   }
 
   // ==========================================

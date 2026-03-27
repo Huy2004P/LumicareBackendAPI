@@ -1,82 +1,112 @@
 const nodemailer = require("nodemailer");
 
-// Cấu hình vận chuyển
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "phathuy2004h@gmail.com", // Email của ông
-    pass: "tbde igub dxap nvhc",    // 16 ký tự App Password Google cấp
+    user: "phathuy2004h@gmail.com",
+    pass: "tbde igub dxap nvhc", 
   },
 });
 
-const sendWelcomeEmail = async (toEmail, fullName) => {
-  const mailOptions = {
-    from: '"BookingCare System" <phathuy2004h@gmail.com>',
-    to: toEmail,
-    subject: "Đăng ký tài khoản thành công - BookingCare",
-    html: `
-      <div style="font-family: sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 20px;">
-        <h2 style="color: #2D9CDB;">Chào mừng ${fullName} đến với BookingCare!</h2>
-        <p>Chúc mừng bạn đã đăng ký tài khoản thành công trên hệ thống của chúng tôi.</p>
-        <p><b>Thông tin tài khoản:</b></p>
-        <ul>
-          <li>Email: ${toEmail}</li>
-          <li>Trạng thái: Đã kích hoạt</li>
-        </ul>
-        <p>Giờ đây bạn đã có thể đặt lịch khám với các bác sĩ hàng đầu ngay trên ứng dụng.</p>
-        <hr />
-        <p style="font-size: 12px; color: #888;">Đây là email tự động, vui lòng không phản hồi thư này.</p>
+/**
+ * HÀM HELPER: Thiết kế một Layout Gradient duy nhất
+ * @param {string} title - Tiêu đề chính trong Body
+ * @param {string} message - Nội dung chi tiết
+ * @param {string} badge - Mã OTP hoặc Trạng thái nổi bật
+ */
+const renderGradientTemplate = (title, message, badge) => {
+  const mainColor = "#0D47A1"; // Xanh đậm
+  const gradient = "linear-gradient(135deg, #0D47A1 0%, #1976D2 100%)";
+
+  return `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+      <div style="background: ${gradient}; padding: 35px 20px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 30px; letter-spacing: 2px; text-transform: uppercase; font-weight: bold;">BookingCare</h1>
       </div>
-    `,
-  };
-
-  return transporter.sendMail(mailOptions);
-};
-
-// Thêm vào file mailer.js của ông
-const sendOTPEmail = async (toEmail, otpCode) => {
-  const mailOptions = {
-    from: '"BookingCare Support" <phathuy2004h@gmail.com>',
-    to: toEmail,
-    subject: `[${otpCode}] Mã xác thực khôi phục mật khẩu`, // Đưa OTP lên tiêu đề để người dùng thấy ngay
-    html: `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
-        <div style="background-color: #2D9CDB; padding: 20px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">BookingCare</h1>
-        </div>
+      
+      <div style="padding: 40px 30px; background-color: white; text-align: center;">
+        <h2 style="color: #333; margin-top: 0; font-size: 22px;">${title}</h2>
+        <p style="color: #666; line-height: 1.6; font-size: 16px; margin-bottom: 25px;">${message}</p>
         
-        <div style="padding: 30px; background-color: white;">
-          <h2 style="color: #333; text-align: center; margin-bottom: 10px;">Mã xác thực của bạn</h2>
-          <p style="color: #666; text-align: center; line-height: 1.5;">
-            Chào bạn, chúng tôi nhận được yêu cầu khôi phục mật khẩu. Vui lòng nhập mã dưới đây để tiếp tục:
-          </p>
-          
-          <div style="margin: 30px 0; text-align: center;">
-            <div style="display: inline-block; background: #f4f7f9; padding: 15px 40px; border-radius: 8px; border: 2px dashed #2D9CDB;">
-              <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #2D9CDB;">${otpCode}</span>
+        ${badge ? `
+          <div style="margin: 30px 0;">
+            <div style="display: inline-block; background: #f8f9fa; padding: 15px 45px; border-radius: 10px; border: 2px dashed ${mainColor};">
+              <span style="font-size: 34px; font-weight: bold; color: ${mainColor}; letter-spacing: 6px;">${badge}</span>
             </div>
           </div>
-          
-          <div style="background-color: #fff9db; border-left: 4px solid #fcc419; padding: 15px; margin-bottom: 20px;">
-            <p style="margin: 0; color: #856404; font-size: 14px; text-align: center;">
-              ⏱️ <b>Mã này sẽ hết hạn sau 5 phút</b>
-            </p>
-          </div>
-          
-          <p style="color: #999; font-size: 12px; text-align: center; line-height: 1.4;">
-            Nếu bạn không yêu cầu thay đổi mật khẩu, vui lòng bỏ qua email này hoặc liên hệ bộ phận hỗ trợ nếu bạn lo ngại về bảo mật.
-          </p>
-        </div>
+        ` : ""}
         
-        <div style="background-color: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
-          <p style="color: #aaa; font-size: 11px; margin: 0;">© 2024 BookingCare System - Phát Huy AGU</p>
-        </div>
+        <p style="color: #999; font-size: 13px; margin-top: 30px;">
+          Đây là email bảo mật từ hệ thống. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua thư này.
+        </p>
       </div>
-    `,
-  };
-
-  return transporter.sendMail(mailOptions);
+      
+      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+        <p style="color: #888; font-size: 12px; margin: 0; font-weight: bold;">© 2024 BookingCare System - Phát Huy AGU</p>
+      </div>
+    </div>
+  `;
 };
 
-// Đừng quên export nó ra
-module.exports = { sendWelcomeEmail, sendOTPEmail };
+// 1. Hàm cũ: Đăng ký thành công
+const sendWelcomeEmail = async (toEmail, fullName) => {
+  const title = "Chào mừng thành viên mới!";
+  const message = `Chào <b>${fullName}</b>, chúc mừng bạn đã gia nhập hệ thống đặt lịch khám <b>BookingCare</b>. Hãy bắt đầu chăm sóc sức khỏe của mình ngay hôm nay!`;
+  const html = renderGradientTemplate(title, message, "✓ XÁC NHẬN");
+
+  return transporter.sendMail({
+    from: '"BookingCare" <phathuy2004h@gmail.com>',
+    to: toEmail,
+    subject: "Đăng ký thành công",
+    html
+  });
+};
+
+// 2. Hàm cũ: OTP Quên mật khẩu
+const sendOTPEmail = async (toEmail, otpCode) => {
+  const title = "Khôi phục mật khẩu";
+  const message = "Bạn vừa gửi yêu cầu khôi phục mật khẩu. Vui lòng nhập mã OTP dưới đây để tiếp tục. Mã có hiệu lực trong 5 phút.";
+  const html = renderGradientTemplate(title, message, otpCode);
+
+  return transporter.sendMail({
+    from: '"BookingCare Support" <phathuy2004h@gmail.com>',
+    to: toEmail,
+    subject: `[${otpCode}] Mã xác thực khôi phục`,
+    html
+  });
+};
+
+// 3. Hàm mới: OTP Đổi mật khẩu trong App
+const sendOTPChangePassword = async (toEmail, otpCode) => {
+  const title = "Xác nhận đổi mật khẩu";
+  const message = "Để đảm bảo an toàn, vui lòng nhập mã OTP dưới đây để xác nhận việc thay đổi mật khẩu của bạn.";
+  const html = renderGradientTemplate(title, message, otpCode);
+
+  return transporter.sendMail({
+    from: '"BookingCare Security" <phathuy2004h@gmail.com>',
+    to: toEmail,
+    subject: `[${otpCode}] Xác nhận đổi mật khẩu`,
+    html
+  });
+};
+
+// 4. Hàm mới: Thông báo thành công
+const sendChangePasswordNotification = async (toEmail, fullName) => {
+  const title = "Đổi mật khẩu thành công";
+  const message = `Chào <b>${fullName}</b>, mật khẩu tài khoản của bạn đã được thay đổi thành công vào lúc ${new Date().toLocaleString('vi-VN')}.`;
+  const html = renderGradientTemplate(title, message, "● THÀNH CÔNG");
+
+  return transporter.sendMail({
+    from: '"BookingCare Security" <phathuy2004h@gmail.com>',
+    to: toEmail,
+    subject: "Thông báo bảo mật",
+    html
+  });
+};
+
+module.exports = { 
+  sendWelcomeEmail, 
+  sendOTPEmail, 
+  sendOTPChangePassword, 
+  sendChangePasswordNotification 
+};

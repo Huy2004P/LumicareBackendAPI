@@ -6,18 +6,15 @@ const { Server } = require('socket.io');
 const http = require("http");
 
 // --- CẤU HÌNH SOCKET.IO ---
-// Tạo một HTTP Server riêng cho Socket.io
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
-  cors: { origin: "*" } // Cho phép Flutter kết nối
+  cors: { origin: "*" }
 });
 
 io.on("connection", (socket) => {
   console.log(">>> [Socket] Có thiết bị kết nối:", socket.id);
 
-  // Trong server.js
   socket.on("register", (userId) => {
-    // Lọc bỏ dấu nháy kép nếu tool hoặc app gửi nhầm format chuỗi JSON
     const cleanId = String(userId).replace(/['"]+/g, ''); 
     const roomName = `user_${cleanId}`;
     
@@ -30,17 +27,14 @@ io.on("connection", (socket) => {
   });
 });
 
-// Chạy HTTP Server cho Socket.io
 const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
-
 httpServer.listen(SOCKET_PORT, () => {
-  console.log(`Socket.io đang chạy tại port: ${SOCKET_PORT}`);
+  console.log(`Socket.io đang chạy tại port: ${SOCKET_PORT}`);
 });
 
-// Export io để các Handler/Service có thể gọi
 global._io = io;
 
-// 1. Import các Handler (Logic xử lý)
+// --- IMPORT HANDLERS ---
 const authHandler = require("./handlers/auth.handler");
 const profileHandler = require("./handlers/profile.handler");
 const masterHandler = require("./handlers/master_data.handler");
@@ -52,14 +46,10 @@ const patientProfileHandler = require("./handlers/patientProfile.handler");
 const notificationHandler = require("./handlers/notification.handler");
 const statisticHandler = require("./handlers/statistic.handler");
 const feedbackHandler = require("./handlers/feedback.handler");
-// 2. Import Interceptor (Để bảo vệ API cần đăng nhập)
-// Đảm bảo bạn đã tạo file này trong src/utils/grpc.interceptor.js
 const checkAuth = require("./utils/grpc.interceptor");
-const { resetPassword } = require("./services/auth.service");
 
 const server = new grpc.Server();
 
-// --- Hàm Helper để load file .proto cho gọn ---
 const loadProto = (filename) => {
   const packageDefinition = protoLoader.loadSync(
     path.join(__dirname, "protos", filename),
@@ -71,159 +61,139 @@ const loadProto = (filename) => {
       oneofs: true,
     },
   );
-  // Trả về package object (vd: auth, profile...)
   return grpc.loadPackageDefinition(packageDefinition);
 };
 
-// ĐĂNG KÝ CÁC SERVICE
+// --- ĐĂNG KÝ CÁC SERVICE ---
 
-// 1. AUTH SERVICE (Public - Không cần checkAuth)
-// Load file src/protos/auth.proto
+// 1. AUTH SERVICE
 const authPackage = loadProto("auth.proto").auth;
-
 server.addService(authPackage.AuthService.service, {
-  Register: authHandler.register, // Map rpc Register -> hàm register
-  Login: authHandler.login, // Map rpc Login -> hàm login
-  RefreshToken: authHandler.refreshToken, // Map rpc RefreshToken
-  Logout: authHandler.logout, // Map rpc Logout
+  Register: authHandler.register,
+  Login: authHandler.login,
+  RefreshToken: authHandler.refreshToken,
+  Logout: authHandler.logout,
   ForgotPassword: authHandler.forgotPassword,
   ResetPassword: authHandler.resetPassword,
+  VerifyOTP: authHandler.VerifyOTP,
 });
 
-// 2. PROFILE SERVICE (Private - Cần bọc checkAuth)
-// Load file src/protos/profile.proto
+// 2. PROFILE SERVICE
 const profilePackage = loadProto("profile.proto").profile;
-
 server.addService(profilePackage.ProfileService.service, {
-  // Bọc hàm handler bằng checkAuth để kiểm tra Token trước khi chạy
   GetMyProfile: checkAuth(profileHandler.GetMyProfile),
   UpdateProfile: checkAuth(profileHandler.UpdateProfile),
+  RequestChangePasswordOTP: checkAuth(profileHandler.RequestChangePasswordOTP),
   ChangePassword: checkAuth(profileHandler.ChangePassword),
 });
 
 // 3. MASTER - DATA
-// Load file src/protos/master_data.proto
-// --- 3. MASTER - DATA ---
 const masterPackage = loadProto("master_data.proto").master_data;
-
 server.addService(masterPackage.MasterDataService.service, {
-  // --- 1. CHUYÊN KHOA ---
   CreateSpecialty: masterHandler.CreateSpecialty,
   UpdateSpecialty: masterHandler.UpdateSpecialty,
   DeleteSpecialty: masterHandler.DeleteSpecialty,
   GetSpecialtyById: masterHandler.GetSpecialtyById,
   GetAllSpecialties: masterHandler.GetAllSpecialties,
-
-  // --- 2. CƠ SỞ Y TẾ ---
   CreateClinic: masterHandler.CreateClinic,
   UpdateClinic: masterHandler.UpdateClinic,
   DeleteClinic: masterHandler.DeleteClinic,
   GetClinicById: masterHandler.GetClinicById,
   GetAllClinics: masterHandler.GetAllClinics,
-
-  // --- 3. PHÒNG KHÁM ---
   CreateRoom: masterHandler.CreateRoom,
   UpdateRoom: masterHandler.UpdateRoom,
   DeleteRoom: masterHandler.DeleteRoom,
-  GetRoomById: masterHandler.GetRoomById,      // <-- BỔ SUNG DÒNG NÀY
+  GetRoomById: masterHandler.GetRoomById,
   GetAllRooms: masterHandler.GetAllRooms,
-
-  // --- 4. DỊCH VỤ ---
+  GetRoomsByClinicId: masterHandler.GetRoomsByClinicId,
   CreateService: masterHandler.CreateService,
   UpdateService: masterHandler.UpdateService,
   DeleteService: masterHandler.DeleteService,
-  GetServiceById: masterHandler.GetServiceById,   // <-- BỔ SUNG DÒNG NÀY
+  GetServiceById: masterHandler.GetServiceById,
   GetAllServices: masterHandler.GetAllServices,
-
-  // --- 5. THUỐC ---
+  GetDoctorsByService: masterHandler.GetDoctorsByService,
+  GetDoctorsByRoomId: masterHandler.GetDoctorsByRoomId,
   CreateDrug: masterHandler.CreateDrug,
   UpdateDrug: masterHandler.UpdateDrug,
   DeleteDrug: masterHandler.DeleteDrug,
   GetDrugById: masterHandler.GetDrugById,
   GetAllDrugs: masterHandler.GetAllDrugs,
-
-  // --- 6. ALLCODES ---
   CreateAllCode: masterHandler.CreateAllCode,
   UpdateAllCode: masterHandler.UpdateAllCode,
   DeleteAllCode: masterHandler.DeleteAllCode,
-  GetAllCodeById: masterHandler.GetAllCodeById,  // <-- BỔ SUNG DÒNG NÀY
+  GetAllCodeById: masterHandler.GetAllCodeById,
   GetAllCodes: masterHandler.GetAllCodes, 
 });
-// 4. DOCTOR
-// Load file src/protos/doctor.proto
+
+// 4. DOCTOR SERVICE
 const doctorPackage = loadProto("doctor.proto").doctor;
 server.addService(doctorPackage.DoctorService.service, {
-  //tao bac si
   CreateDoctor: doctorHandler.CreateDoctor,
-  //lay toan bo bac si
   GetAllDoctors: doctorHandler.GetAllDoctors,
-  //lay bac si theo id
   GetDoctorById: doctorHandler.GetDoctorById,
   AssignServiceToDoctor: doctorHandler.AssignServiceToDoctor,
   GetDoctorServices: doctorHandler.GetDoctorServices,
+  GlobalSearch: doctorHandler.GlobalSearch,
 });
+
 // 5. SCHEDULE
-// Load file src/protos/schedule.proto
 const schedulePackage = loadProto("schedule.proto").schedule;
 server.addService(schedulePackage.ScheduleService.service, {
-  BulkCreateSchedule: checkAuth(scheduleHandler.BulkCreateSchedule), // Bác sĩ mới được tạo
-  GetScheduleByDate: scheduleHandler.GetScheduleByDate,             // Bệnh nhân xem thì public
+  BulkCreateSchedule: checkAuth(scheduleHandler.BulkCreateSchedule),
+  GetScheduleByDate: scheduleHandler.GetScheduleByDate,
 });
+
 // 6. BOOKING
-// Load file src/protos/booking.proto
 const bookingPackage = loadProto("booking.proto").booking;
 server.addService(bookingPackage.BookingService.service, {
-  CreateBooking: checkAuth(bookingHandler.CreateBooking),     // Phải đăng nhập mới đặt được lịch
+  CreateBooking: checkAuth(bookingHandler.CreateBooking),
   GetBookingHistory: checkAuth(bookingHandler.GetBookingHistory),
   CancelBooking: checkAuth(bookingHandler.CancelBooking),
   DeleteBooking: checkAuth(bookingHandler.DeleteBooking),
 });
+
 // 7. APPOINTMENT
-// Load file src/protos/appointment.proto
 const appointmentPackage = loadProto("appointment.proto").appointment;
 server.addService(appointmentPackage.AppointmentService.service, {
   GetListPatientForDoctor: checkAuth(appointmentHandler.GetListPatientForDoctor),
   VerifyBooking: checkAuth(appointmentHandler.VerifyBooking),
   FinishAppointment: checkAuth(appointmentHandler.FinishAppointment),
 });
+
 // 8. PATIENT PROFILE
-// Load file src/protos/patientProfile.proto
 const patientProfilePackage = loadProto("patientProfile.proto").patient_profile;
 server.addService(patientProfilePackage.PatientProfileService.service, {
-  GetAllProfiles: patientProfileHandler.GetAllProfiles,
-  CreateProfile: patientProfileHandler.CreateProfile,
-  UpdateProfile: patientProfileHandler.UpdateProfile,
-  DeleteProfile: patientProfileHandler.DeleteProfile,
-  GetProfileById: patientProfileHandler.GetProfileById,
+  GetAllProfiles: checkAuth(patientProfileHandler.GetAllProfiles),
+  CreateProfile: checkAuth(patientProfileHandler.CreateProfile),
+  UpdateProfile: checkAuth(patientProfileHandler.UpdateProfile),
+  DeleteProfile: checkAuth(patientProfileHandler.DeleteProfile),
+  GetProfileById: checkAuth(patientProfileHandler.GetProfileById),
 });
+
 // 9. NOTIFICATION
-// Load file src/protos/notification.proto
 const notificationPackage = loadProto("notification.proto").notification;
 server.addService(notificationPackage.NotificationService.service, {
   GetMyNotifications: notificationHandler.GetMyNotifications,
   MarkAsRead: notificationHandler.MarkAsRead,
 });
+
 // 10. STATISTIC
-// Load file src/protos/statistic.proto
 const statisticPackage = loadProto("statistic.proto").statistic;
 server.addService(statisticPackage.StatisticService.service, {
   GetAdminDashboard: statisticHandler.GetAdminDashboard,
   GetDoctorDashboard: statisticHandler.GetDoctorDashboard,
 });
+
 // 11. FEEDBACK
-// Load file src/protos/feedback.proto
 const feedbackPackage = loadProto("feedback.proto").feedback;
 server.addService(feedbackPackage.FeedbackService.service, {
   SendFeedback: feedbackHandler.SendFeedback,
   GetDoctorFeedbacks: feedbackHandler.GetDoctorFeedbacks,
   GetAllFeedbacks: feedbackHandler.GetAllFeedbacks,
 });
-// KHỞI ĐỘNG SERVER
 
-
-// gRPC thường chạy port 50051 (khác với 3000 của Web)
+// --- KHỞI ĐỘNG SERVER ---
 const PORT = process.env.PORT || 50051;
-
 server.bindAsync(
   `0.0.0.0:${PORT}`,
   grpc.ServerCredentials.createInsecure(),

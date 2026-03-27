@@ -1,25 +1,33 @@
 const notificationRepo = require("../repositories/notification.repo");
-const { sendRealtimeNotification } = require("../utils/notification.util");
+const redisClient = require("../config/redis");
 
 class NotificationService {
   
-  // --- INTERNAL USE: Các Service khác gọi để thông báo cho User ---
   async sendNotification(userId, message, type = 'system') {
     if (!userId) return; 
     
     try {
-      // 1. Lưu vào Database (Lịch sử để xem lại)
-      await notificationRepo.create({
-        user_id: userId,
-        message: message,
-        type: type
-      });
-
-      // 2. Tự động xác định tiêu đề dựa trên loại (cho chuyên nghiệp)
       const title = this._generateTitle(type);
 
-      // 3. Gửi tin thời gian thực qua Socket.io
-      sendRealtimeNotification(userId, title, message, type);
+      // 1. Repo xử lý lưu DB và Cache vào Redis List
+      const insertId = await notificationRepo.create({
+        user_id: userId,
+        message: message,
+        type: type,
+        title: title
+      });
+
+      // 2. Phát tín hiệu Pub/Sub (Real-time)
+      const pubMessage = JSON.stringify({
+        id: insertId,
+        user_id: userId,
+        title: title,
+        message: message,
+        type: type,
+        created_at: new Date().toISOString()
+      });
+
+      await redisClient.publish(`channel:user:${userId}`, pubMessage);
 
     } catch (error) {
       console.error(">>> [Notification Service Error]:", error);
@@ -35,15 +43,14 @@ class NotificationService {
     return titles[type] || 'Thông báo mới';
   }
 
-  // --- API USE: Cho gRPC Handler gọi ---
   async getMyNotifications(userId) {
-    if (!userId) throw new Error("Thiếu User ID!");
     return await notificationRepo.getByUserId(userId);
   }
 
   async markAsRead(id) {
-    if (!id) throw new Error("Thiếu ID thông báo!");
-    return await notificationRepo.markAsRead(id);
+    // Lưu ý: Khi markAsRead, ông nên xóa key Redis của User đó để nó sync lại từ DB
+    const success = await notificationRepo.markAsRead(id);
+    return success;
   }
 }
 
