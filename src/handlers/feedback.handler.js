@@ -17,5 +17,14 @@ module.exports = {
     } catch (e) {
       callback({ code: 13, message: e.message });
     }
+  },
+
+  GetAllFeedbacks: async (call, callback) => {
+    try {
+      const result = await feedbackService.getAllFeedbacks();
+      callback(null, result);
+    } catch (e) {
+      callback({ code: 13, message: e.message });
+    }
   }
 };

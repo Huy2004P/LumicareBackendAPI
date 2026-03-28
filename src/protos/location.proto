@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package location;
+
+service LocationService {
+  rpc GetPatientLocations (PatientIdRequest) returns (LocationList);
+  rpc AddNewLocation (LocationMessage) returns (LocationResponse);
+  rpc DeleteLocation (LocationIdRequest) returns (EmptyResponse);
+  // Đặt địa chỉ làm mặc định
+  rpc SetDefaultLocation (LocationIdRequest) returns (EmptyResponse); 
+}
+
+message LocationMessage {
+  int32 id = 1;
+  int32 user_id = 2;
+  string label = 3;           
+  string address_detail = 4;  
+  string province = 5;        
+  string district = 6;        
+  string ward = 7;            
+  double latitude = 8;        
+  double longitude = 9;       
+  bool is_default = 10;
+}
+
+message PatientIdRequest { int32 user_id = 1; }
+message LocationIdRequest { int32 location_id = 1; }
+message LocationList { repeated LocationMessage locations = 1; }
+message LocationResponse { bool success = 1; string message = 2; int32 location_id = 3; }
+message EmptyResponse {}

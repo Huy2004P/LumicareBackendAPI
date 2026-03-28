@@ -14,6 +14,8 @@ class BookingRepository {
       const timeVal = data.time_type || data.timeType;
       const bookingDate = data.date;
       const serviceId = (data.service_id || data.serviceId) > 0 ? (data.service_id || data.serviceId) : null;
+      // BỔ SUNG: Lấy address từ data gửi lên
+      const address = data.address || "";
 
       let finalDoctorId = doctorIdReq;
       let finalPrice = 0;
@@ -23,12 +25,12 @@ class BookingRepository {
       if (docData.length === 0) throw new Error("Bác sĩ không tồn tại!");
       const doctorPrice = Number(docData[0].price || 0);
 
-      // 2. Logic xử lý Bác sĩ và Giá (Đoạn cũ của Huy)
+      // 2. Logic xử lý Bác sĩ và Giá
       if (serviceId) {
         const [mapping] = await connection.execute(
           `SELECT ds.doctor_id, s.price FROM doctor_services ds 
-           INNER JOIN services s ON ds.service_id = s.id 
-           WHERE ds.service_id = ? AND s.is_deleted = 0 LIMIT 1`, [serviceId]
+            INNER JOIN services s ON ds.service_id = s.id 
+            WHERE ds.service_id = ? AND s.is_deleted = 0 LIMIT 1`, [serviceId]
         );
         if (mapping.length > 0) {
           finalDoctorId = mapping[0].doctor_id;
@@ -41,20 +43,22 @@ class BookingRepository {
         // KHÁM LẺ: Chỉ lấy giá bác sĩ
         finalPrice = doctorPrice; 
       }
+
       // 3. Kiểm tra Lịch khám (Schedules)
       const [schedules] = await connection.execute(
         `SELECT id, current_booking, max_booking FROM schedules 
-         WHERE doctor_id=? AND date=? AND time_type=? AND is_deleted = 0 FOR UPDATE`,
+          WHERE doctor_id=? AND date=? AND time_type=? AND is_deleted = 0 FOR UPDATE`,
         [finalDoctorId, bookingDate, timeVal]
       );
       if (schedules.length === 0) throw new Error("Không tìm thấy lịch khám!");
 
       // 4. LƯU ĐƠN - Ép kiểu Number để chắc chắn khớp DB
+      // BỔ SUNG: Thêm trường address vào câu lệnh INSERT
       const sqlBooking = `
         INSERT INTO bookings (
           patient_id, profile_id, doctor_id, service_id, price, 
-          date, time, reason, status, is_deleted, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NOW(), NOW())`;
+          date, time, reason, address, status, is_deleted, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NOW(), NOW())`;
       
       const [res] = await connection.execute(sqlBooking, [
         Number(patientId), 
@@ -64,7 +68,8 @@ class BookingRepository {
         finalPrice, 
         bookingDate, 
         timeVal, 
-        data.reason || ""
+        data.reason || "",
+        address // LƯU ĐỊA CHỈ VÀO ĐÂY
       ]);
       
       const newBookingId = res.insertId;
@@ -100,12 +105,10 @@ class BookingRepository {
     }
   }
 
-  // --- Các hàm History, Cancel, Delete giữ nguyên như bản trước của ông là chuẩn rồi ---
   async getHistory(patientId) {
-    // Chỉ lấy những đơn chưa bị xóa ảo
     const sql = `SELECT * FROM view_booking_history 
-                 WHERE patient_id = ? AND is_deleted = 0 
-                 ORDER BY created_at DESC`;
+                  WHERE patient_id = ? AND is_deleted = 0 
+                  ORDER BY created_at DESC`;
 
     const [rows] = await db.execute(sql, [patientId]);
     return rows;
@@ -116,7 +119,6 @@ class BookingRepository {
     try {
       await connection.beginTransaction();
 
-      // 1. Kiểm tra đơn hàng có đúng của ông này không và đang ở trạng thái pending mới cho hủy
       const [bookings] = await connection.execute(
         "SELECT * FROM bookings WHERE id=? AND patient_id=? AND is_deleted=0 FOR UPDATE", 
         [bookingId, patientId]
@@ -125,17 +127,15 @@ class BookingRepository {
       if (bookings.length === 0) throw new Error("Không tìm thấy đơn hàng hợp lệ để hủy!");
       if (bookings[0].status !== 'pending') throw new Error("Đơn hàng này không thể hủy (đã khám hoặc đã hủy trước đó)!");
 
-      // 2. Cập nhật trạng thái thành 'cancelled'
       await connection.execute(
         "UPDATE bookings SET status='cancelled', updated_at=NOW() WHERE id=?", 
         [bookingId]
       );
 
-      // 3. HOÀN SLOT: Giảm current_booking đi 1 trong bảng schedules
       await connection.execute(
         `UPDATE schedules 
-         SET current_booking = GREATEST(0, current_booking - 1) 
-         WHERE doctor_id=? AND date=? AND time_type=?`, 
+          SET current_booking = GREATEST(0, current_booking - 1) 
+          WHERE doctor_id=? AND date=? AND time_type=?`, 
         [bookings[0].doctor_id, bookings[0].date, bookings[0].time]
       );
 

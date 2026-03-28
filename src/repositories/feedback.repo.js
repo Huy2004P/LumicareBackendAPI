@@ -29,6 +29,21 @@ class FeedbackRepository {
     const [rows] = await db.execute(sql, [doctorId]);
     return rows;
   }
+
+  async getAll() {
+    const sql = `
+      SELECT 
+        f.*, 
+        p.full_name as patient_name,
+        d.full_name as doctor_name
+      FROM feedbacks f
+      JOIN patients p ON f.patient_id = p.id
+      JOIN doctors d ON f.doctor_id = d.id
+      ORDER BY f.created_at DESC
+    `;
+    const [rows] = await db.execute(sql);
+    return rows;
+  }
 }
 
 module.exports = new FeedbackRepository();

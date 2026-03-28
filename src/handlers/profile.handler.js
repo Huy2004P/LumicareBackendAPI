@@ -28,18 +28,17 @@ module.exports = {
   GetMyProfile: (call, callback) => {
     safeCall(callback, async () => {
       const userId = getUserIdFromContext(call);
-      
       const profile = await profileService.getMyProfile(userId);
 
-      // Map DB -> Proto
       return {
-        id: profile.id,
+        id: Number(profile.id),
         email: profile.email,
         role: profile.role,
-        fullName: profile.full_name || "",
+        fullName: profile.fullName || "",
         phone: profile.phone || "",
         avatar: profile.avatar || "",
-        createdAt: profile.created_at ? new Date(profile.created_at).toISOString() : ""
+        birthday: profile.birthday || "",
+        createdAt: profile.createdAt || ""
       };
     });
   },
@@ -48,29 +47,36 @@ module.exports = {
   UpdateProfile: (call, callback) => {
     safeCall(callback, async () => {
       const userId = getUserIdFromContext(call);
-      
-      // call.request chứa: fullName, phone, avatar
-      const updatedProfile = await profileService.updateProfile(userId, call.request);
+      const updated = await profileService.updateProfile(userId, call.request);
       
       return {
-        id: updatedProfile.id,
-        email: updatedProfile.email,
-        role: updatedProfile.role,
-        fullName: updatedProfile.full_name || "",
-        phone: updatedProfile.phone || "",
-        avatar: updatedProfile.avatar || "",
-        createdAt: updatedProfile.created_at ? new Date(updatedProfile.created_at).toISOString() : ""
+        id: updated.id,
+        email: updated.email,
+        role: updated.role,
+        fullName: updated.fullName, // <--- PHẢI LÀ fullName
+        phone: updated.phone,
+        avatar: updated.avatar,
+        birthday: updated.birthday,
+        createdAt: updated.createdAt
       };
     });
   },
 
-  // 3. Đổi mật khẩu
+  // 1. Yêu cầu gửi OTP đổi mật khẩu
+  RequestChangePasswordOTP: (call, callback) => {
+    safeCall(callback, async () => {
+      const userId = getUserIdFromContext(call);
+      return await profileService.requestChangePasswordOTP(userId);
+    });
+  },
+
+  // 2. Đổi mật khẩu
   ChangePassword: (call, callback) => {
     safeCall(callback, async () => {
       const userId = getUserIdFromContext(call);
-      const { oldPassword, newPassword } = call.request;
+      const { oldPassword, newPassword, otp } = call.request;
 
-      await profileService.changePassword(userId, oldPassword, newPassword);
+      await profileService.changePassword(userId, oldPassword, newPassword, otp);
       
       return { success: true, message: "Đổi mật khẩu thành công!" };
     });

@@ -65,6 +65,24 @@ class AppointmentRepository {
         ]
       );
 
+      //Lưu treatments vào bảng treatments (Nếu có)
+      if (data.treatments && data.treatments.length > 0) {
+        const treatmentPromises = data.treatments.map((t) => {
+          return connection.execute(
+            `INSERT INTO treatments (appointment_id, name, times, instruction, repeat_days) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+              appointmentId, 
+              t.name, 
+              t.times || 2, 
+              t.instruction || '', 
+              t.repeat_days || 7
+            ]
+          );
+        });
+        await Promise.all(treatmentPromises);
+      }
+
       // B4: Lưu đơn thuốc (Giữ nguyên logic cũ của ông)
       if (data.medicines && data.medicines.length > 0) {
         const drugPromises = data.medicines.map((drug) => {

@@ -13,55 +13,59 @@ class AppointmentService {
   }
 
   // Logic duyệt lịch
-  async verifyBooking(doctorId, bookingId, status) {
+ async verifyBooking(doctorId, bookingId, status) {
     if (!bookingId) throw new Error("Thiếu ID lịch hẹn!");
-    
-    // Nếu client không gửi status, mặc định là 'confirmed'
     const finalStatus = status || 'confirmed';
-    
-    // Gọi Repo update
     const isUpdated = await appointmentRepo.verifyBooking(bookingId, finalStatus);
     
-    if (!isUpdated) {
-      throw new Error("Lịch hẹn không tồn tại hoặc lỗi cập nhật!");
-    }
+    if (!isUpdated) throw new Error("Lịch hẹn không tồn tại hoặc lỗi cập nhật!");
 
     try {
-      // Lấy thông tin booking để biết patient_id là ai
       const bookingInfo = await appointmentRepo.getBookingById(bookingId);
-      
-      if (bookingInfo && bookingInfo.user_id) {
-        let msg = "";
-        if (finalStatus === 'confirmed') msg = "Lịch khám tại nhà của bạn đã được bác sĩ xác nhận!";
-        if (finalStatus === 'arrived') msg = "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị!";
-        
-        if (bookingInfo && bookingInfo.user_id) {
-          await notificationService.sendNotification(
-            bookingInfo.user_id, // Bây giờ nó đã là ID chuẩn của bảng users rồi
-            msg, 
-            'booking'
-          );
-        }
-      }
-    } catch (notiError) {
-      // Nếu lỗi bắn thông báo thì cũng kệ nó, đừng làm hỏng luồng verify chính
-      console.error("Lỗi gửi thông báo:", notiError);
-    }
+      const statusMessages = {
+        'confirmed': "Lịch khám của bạn đã được bác sĩ xác nhận! ✅",
+        'arrived': "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị! 🏠",
+        'canceled': "Rất tiếc, bác sĩ đã hủy lịch khám của bạn. ❌",
+        'finished': "Buổi khám đã kết thúc. Cảm ơn bạn đã tin tưởng! ✨"
+    };
 
+    const msg = statusMessages[finalStatus];
+    if (msg && bookingInfo.user_id) {
+        await notificationService.sendNotification(bookingInfo.user_id, msg, 'booking');
+    }
+    } catch (notiError) { console.error("Lỗi gửi thông báo:", notiError); }
     return true;
   }
 
   // Logic hoàn tất khám
   async finishAppointment(data) {
-    if (!data.booking_id || !data.doctor_id) {
-      throw new Error("Dữ liệu không hợp lệ (Thiếu ID)!");
-    }
-    if (!data.diagnosis) {
-      throw new Error("Vui lòng nhập chẩn đoán bệnh!");
-    }
+    if (!data.booking_id || !data.doctor_id) throw new Error("Thiếu ID!");
+    if (!data.diagnosis) throw new Error("Vui lòng nhập chẩn đoán bệnh!");
 
-    // Không cần xử lý gì thêm, truyền cục data (đã có re_exam_date từ proto) xuống Repo
+    // Map prescriptions sang treatments (giữ nguyên logic của ông)
+    if (data.prescriptions && data.prescriptions.length > 0) {
+      data.treatments = data.prescriptions.map(item => ({
+        name: item.medicine_name || item.name,
+        times: item.times_per_day || 2,
+        instruction: item.instruction || "Uống sau khi ăn",
+        repeat_days: item.days || 7
+      }));
+    } else { data.prescriptions = []; }
+
     const recordId = await appointmentRepo.finishAppointmentTransaction(data);
+
+    // GỬI TIN CHO BỆNH NHÂN SAU KHI KHÁM XONG
+    try {
+      const bookingInfo = await appointmentRepo.getBookingById(data.booking_id);
+      if (bookingInfo && bookingInfo.user_id) {
+        await notificationService.sendNotification(
+          bookingInfo.user_id, 
+          "Bác sĩ đã hoàn tất buổi khám. Bạn có thể xem đơn thuốc và lịch nhắc thuốc ngay bây giờ! 💊", 
+          'treatment'
+        );
+      }
+    } catch (e) { console.error("Lỗi gửi thông báo khám xong:", e); }
+
     return recordId;
   }
 }

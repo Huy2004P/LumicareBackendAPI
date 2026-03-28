@@ -25,6 +25,23 @@ class FeedbackService {
       average_rating: parseFloat(avg)
     };
   }
+
+  async getAllFeedbacks() {
+    const feedbacks = await feedbackRepo.getAll();
+    
+    return {
+      success: true,
+      data: feedbacks.map(f => ({
+        id: f.id,
+        patient_name: f.patient_name,
+        doctor_name: f.doctor_name, // Thêm tên bác sĩ cho Admin dễ quản lý
+        booking_id: f.booking_id,
+        rating: f.rating,
+        comment: f.comment,
+        created_at: f.created_at ? f.created_at.toISOString() : null
+      }))
+    };
+  }
 }
 
 module.exports = new FeedbackService();

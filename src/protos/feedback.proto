@@ -8,7 +8,13 @@ service FeedbackService {
 
   // 2. Lấy danh sách đánh giá của một bác sĩ
   rpc GetDoctorFeedbacks (DoctorIdRequest) returns (FeedbackListResponse);
+
+  // 3. Lấy tất cả đánh giá (Dành cho Admin)
+  rpc GetAllFeedbacks (Empty) returns (FeedbackListResponse);
 }
+
+// KHÔNG ĐƯỢC THIẾU: Định nghĩa message rỗng cho hàm GetAll
+message Empty {}
 
 message FeedbackRequest {
   int32 booking_id = 1;
@@ -30,9 +36,11 @@ message DoctorIdRequest {
 message FeedbackItem {
   int32 id = 1;
   string patient_name = 2;
-  int32 rating = 3;
-  string comment = 4;
-  string created_at = 5;
+  string doctor_name = 3; // HUY THÊM DÒNG NÀY: Để Admin biết bác sĩ nào được đánh giá
+  int32 rating = 4;
+  string comment = 5;
+  string created_at = 6;
+  int32 booking_id = 7; // Thêm cái này để Admin cần thì đối soát lịch hẹn
 }
 
 message FeedbackListResponse {

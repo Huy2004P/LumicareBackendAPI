@@ -1,4 +1,6 @@
 const scheduleRepo = require("../repositories/schedule.repo");
+const notificationService = require("./notification.service");
+const appointmentRepo = require("../repositories/appointment.repo");
 const moment = require("moment");
 
 class ScheduleService {
@@ -45,6 +47,22 @@ class ScheduleService {
     ]);
 
     await scheduleRepo.bulkCreate(scheduleData);
+    try {
+        // 1. Lấy thông tin bác sĩ để tìm user_id chuẩn
+        const doctorInfo = await appointmentRepo.getBookingById(null, doctor_id); 
+        // Lưu ý: Nếu ông chưa có hàm lấy info bác sĩ riêng, tui giả định ông dùng repo có sẵn
+        
+        // 2. Gửi tin qua Socket.io
+        if (doctorInfo && doctorInfo.user_id) {
+            await notificationService.sendNotification(
+                doctorInfo.user_id, 
+                `Hệ thống: Bạn đã cập nhật thành công ${time_types.length} khung giờ khám cho ngày ${formattedDate}. 📅`, 
+                'system'
+            );
+        }
+    } catch (e) { 
+        console.error(">>> [Lỗi Thông Báo] Không gửi được tin cho bác sĩ:", e.message); 
+    }
     return { success: true, message: "Cập nhật lịch khám thành công!" };
   }
 

@@ -15,11 +15,14 @@ service AuthService {
   // 4. Đăng xuất (POST /api/auth/logout)
   rpc Logout (Empty) returns (StatusResponse);
 
-  // 5. Fotgot password
+  // 5. Quên mật khẩu
   rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
 
-  // 6. Reset password
+  // 6. Đặt lại mật khẩu
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+
+  // 7. Xác nhận OTP
+  rpc VerifyOTP (VerifyOTPRequest) returns (StatusResponse);
 }
 
 // --- Messages ---
@@ -30,12 +33,18 @@ message StatusResponse {
   string message = 2;
 }
 
+message VerifyOTPRequest {
+  string email = 1;
+  string otp = 2;
+}
+
 message RegisterRequest {
   string email = 1;
   string password = 2;
   string fullName = 3;
   string phone = 4;
   string role = 5;
+  string birthday = 6; // <--- THÊM DÒNG NÀY ĐỂ ĐĂNG KÝ CÓ NGÀY SINH
 }
 
 message LoginRequest {
@@ -67,7 +76,7 @@ message ResetPasswordResponse {
   string message = 2;
 }
 
-// User Info trả về kèm Token
+// User Info trả về kèm Token sau khi Login/Register
 message UserInfo {
   int32 id = 1;
   string email = 2;
@@ -75,6 +84,7 @@ message UserInfo {
   string fullName = 4;
   string avatar = 5;
   string phone = 6;
+  string birthday = 7; // <--- THÊM DÒNG NÀY ĐỂ TRẢ VỀ NGÀY SINH
 }
 
 message AuthResponse {

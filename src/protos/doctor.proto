@@ -3,20 +3,15 @@ syntax = "proto3";
 package doctor;
 
 service DoctorService {
-  // Tạo bác sĩ
   rpc CreateDoctor (CreateDoctorRequest) returns (DoctorResponse);
-
-  // Lấy danh sách
   rpc GetAllDoctors (DoctorFilter) returns (DoctorListResponse);
-  
-  // Xem chi tiết
   rpc GetDoctorById (DoctorIdRequest) returns (DoctorResponse);
 
-  // [MỚI] Gán dịch vụ cho bác sĩ (Lưu vào bảng doctor_services)
-  rpc AssignServiceToDoctor (AssignServiceRequest) returns (StatusResponse);
-  
-  // [MỚI] Lấy danh sách dịch vụ của 1 bác sĩ
   rpc GetDoctorServices (DoctorIdRequest) returns (DoctorServiceListResponse);
+  rpc AssignServiceToDoctor (AssignServiceRequest) returns (StatusResponse);
+
+  // Đổi tên hàm và message ở đây
+  rpc GlobalSearch (GlobalSearchRequest) returns (GlobalSearchResponse);
 }
 
 message StatusResponse {
@@ -24,7 +19,25 @@ message StatusResponse {
   string message = 2;
 }
 
-message DoctorIdRequest { int32 id = 1; }
+message DoctorIdRequest { 
+  int32 id = 1; 
+}
+
+message DoctorResponse {
+  int32 id = 1;
+  string fullName = 2;
+  string email = 3;
+  string phone = 4;
+  string position = 5;
+  string description = 6;
+  double price = 7;
+  string avatar = 8;
+  string specialtyName = 9;
+  string roomName = 10;
+  string clinicName = 11;
+  bool active = 12;
+  int32 specialtyId = 13;
+}
 
 message CreateDoctorRequest {
   string email = 1;
@@ -45,37 +58,44 @@ message DoctorFilter {
   int32 roomId = 3;
 }
 
-message DoctorResponse {
-  int32 id = 1;
-  string fullName = 2;
-  string email = 3;
-  string phone = 4;
-  string position = 5;
-  string description = 6;
-  double price = 7;
-  string avatar = 8;
-  string specialtyName = 9;
-  string roomName = 10;
-  string clinicName = 11;
-  bool active = 12;
-}
-
-message DoctorListResponse { repeated DoctorResponse doctors = 1; }
-
-// --- CHỈNH LẠI MESSAGE NÀY THEO JSON CỦA HUY ---
-message AssignServiceRequest {
-  int32 doctorId = 1;      // Đổi từ doctor_id -> doctorId
-  repeated int32 serviceIds = 2; // Đổi từ service_ids -> serviceIds
+message DoctorListResponse { 
+  repeated DoctorResponse doctors = 1; 
 }
 
 message ServiceItem {
   int32 id = 1;
   string name = 2;
   double price = 3;
+  string description = 4;
+  string image = 5;
 }
 
 message DoctorServiceListResponse {
   bool success = 1;
   string doctorName = 2;
   repeated ServiceItem data = 3;
+}
+
+message AssignServiceRequest {
+  int32 doctorId = 1;
+  repeated int32 serviceIds = 2;
+}
+
+// ĐỔI TÊN Ở ĐÂY CHO KHÁC VỚI MASTER DATA
+message GlobalSearchRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchResultItem {
+  int32 id = 1;
+  string name = 2;
+  string subTitle = 3;
+  string avatar = 4;
+  string type = 5;
+}
+
+message GlobalSearchResponse {
+  bool success = 1;
+  repeated SearchResultItem results = 2;
 }
