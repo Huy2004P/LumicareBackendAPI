@@ -46,6 +46,7 @@ const patientProfileHandler = require("./handlers/patientProfile.handler");
 const notificationHandler = require("./handlers/notification.handler");
 const statisticHandler = require("./handlers/statistic.handler");
 const feedbackHandler = require("./handlers/feedback.handler");
+const locationHandler = require("./handlers/location.handler");
 const checkAuth = require("./utils/grpc.interceptor");
 
 const server = new grpc.Server();
@@ -190,6 +191,15 @@ server.addService(feedbackPackage.FeedbackService.service, {
   SendFeedback: feedbackHandler.SendFeedback,
   GetDoctorFeedbacks: feedbackHandler.GetDoctorFeedbacks,
   GetAllFeedbacks: feedbackHandler.GetAllFeedbacks,
+});
+
+// 12. LOCATION
+const locationPackage = loadProto("location.proto").location;
+server.addService(locationPackage.LocationService.service, {
+  GetPatientLocations: checkAuth(locationHandler.getPatientLocations), // Dùng interceptor để bảo mật
+  AddNewLocation: checkAuth(locationHandler.addNewLocation),
+  DeleteLocation: checkAuth(locationHandler.removeLocation),
+  SetDefaultLocation: checkAuth(locationHandler.setDefaultLocation)
 });
 
 // --- KHỞI ĐỘNG SERVER ---
