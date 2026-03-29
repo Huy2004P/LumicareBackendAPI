@@ -13,7 +13,7 @@ module.exports = {
         max_booking
       });
 
-      // Trả về kết quả (thành công/thất bại và danh sách khung giờ bị xung đột nếu có)
+      // Trả về kết quả
       callback(null, {
         success: result.success,
         message: result.message,
@@ -25,23 +25,31 @@ module.exports = {
     }
   },
 
-  // 2. Lấy danh sách lịch khám theo ngày
+  // 2. Lấy danh sách lịch khám theo ngày - FIX Ở ĐÂY
   GetScheduleByDate: async (call, callback) => {
     try {
       const { doctor_id, date } = call.request;
       const schedules = await scheduleService.getScheduleByDate(doctor_id, date);
 
+      // In log ra để Huy kiểm tra lần cuối trước khi đẩy lên App
+      console.log(`>>> [Handler] Đang gửi về App ${schedules.length} slot lịch.`);
+
       // Map lại dữ liệu cho khớp với Repeated Message trong Proto
-      const data = schedules.map(item => ({
+      const dataMapping = schedules.map(item => ({
         id: item.id,
-        time_type: item.time_type || item.timeType,
-        time_display: item.time_display || item.timeDisplay,
+        time_type: item.time_type,
+        time_display: item.time_display, // Cái này đã được Repo lấy từ allcodes rồi
         max_booking: item.max_booking || 0,
         current_booking: item.current_booking || 0,
-        is_available: item.is_available
+        is_available: (item.max_booking > item.current_booking)
       }));
 
-      callback(null, { data });
+      // QUAN TRỌNG: Phải có success: true thì App mới chịu nhận data
+      callback(null, { 
+        success: true, 
+        data: dataMapping 
+      });
+
     } catch (e) {
       console.error(">>> Error GetScheduleByDate:", e);
       callback({ code: 13, message: e.message });

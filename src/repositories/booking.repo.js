@@ -7,57 +7,69 @@ class BookingRepository {
     try {
       await connection.beginTransaction();
 
-      // 1. Lấy dữ liệu cực kỳ linh hoạt (Bất kể camelCase hay snake_case)
-      const patientId = data.patient_id || data.patientId; 
+      // 1. Lấy dữ liệu linh hoạt (Support cả snake_case và camelCase từ FE)
+      const patientId = data.patient_id || data.patientId;
       const profileId = data.profile_id || data.profileId;
       const doctorIdReq = data.doctor_id || data.doctorId;
       const timeVal = data.time_type || data.timeType;
       const bookingDate = data.date;
       const serviceId = (data.service_id || data.serviceId) > 0 ? (data.service_id || data.serviceId) : null;
-      // BỔ SUNG: Lấy address từ data gửi lên
-      const address = data.address || "";
+      const locationId = data.location_id || data.locationId; // Đây là ID quan trọng
+
+      // 2. Kiểm tra sự tồn tại của locationId trong bảng locations
+      if (locationId) {
+        const [locCheck] = await connection.execute(
+          "SELECT id FROM locations WHERE id = ?", 
+          [locationId]
+        );
+        if (locCheck.length === 0) {
+          throw new Error("Địa chỉ (Location ID) không tồn tại trên hệ thống!");
+        }
+      }
 
       let finalDoctorId = doctorIdReq;
       let finalPrice = 0;
 
-      // 1. LUÔN LUÔN lấy giá của bác sĩ trước (Dù có gói hay không)
+      // 3. Lấy giá của bác sĩ
       const [docData] = await connection.execute("SELECT price FROM doctors WHERE id = ?", [finalDoctorId]);
       if (docData.length === 0) throw new Error("Bác sĩ không tồn tại!");
       const doctorPrice = Number(docData[0].price || 0);
 
-      // 2. Logic xử lý Bác sĩ và Giá
+      // 4. Tính tổng giá (Bác sĩ + Dịch vụ)
       if (serviceId) {
         const [mapping] = await connection.execute(
-          `SELECT ds.doctor_id, s.price FROM doctor_services ds 
-            INNER JOIN services s ON ds.service_id = s.id 
-            WHERE ds.service_id = ? AND s.is_deleted = 0 LIMIT 1`, [serviceId]
+          `SELECT s.price FROM services s WHERE s.id = ? AND s.is_deleted = 0`, [serviceId]
         );
         if (mapping.length > 0) {
-          finalDoctorId = mapping[0].doctor_id;
-          // CỘNG DỒN: Giá bác sĩ + Giá gói
           finalPrice = doctorPrice + Number(mapping[0].price || 0);
-        } else {
-          throw new Error("Gói khám chưa có bác sĩ!");
         }
       } else {
-        // KHÁM LẺ: Chỉ lấy giá bác sĩ
         finalPrice = doctorPrice; 
       }
 
-      // 3. Kiểm tra Lịch khám (Schedules)
-      const [schedules] = await connection.execute(
-        `SELECT id, current_booking, max_booking FROM schedules 
-          WHERE doctor_id=? AND date=? AND time_type=? AND is_deleted = 0 FOR UPDATE`,
-        [finalDoctorId, bookingDate, timeVal]
-      );
-      if (schedules.length === 0) throw new Error("Không tìm thấy lịch khám!");
+      // 5. Kiểm tra Slots (Schedules) - Bỏ qua nếu là giờ tự chọn
+      let scheduleId = null;
+      if (timeVal !== 'TIME_CUSTOM') {
+        const [schedules] = await connection.execute(
+          `SELECT id, current_booking, max_booking FROM schedules 
+            WHERE doctor_id=? AND date=? AND time_type=? AND is_deleted = 0 FOR UPDATE`,
+          [finalDoctorId, bookingDate, timeVal]
+        );
 
-      // 4. LƯU ĐƠN - Ép kiểu Number để chắc chắn khớp DB
-      // BỔ SUNG: Thêm trường address vào câu lệnh INSERT
+        if (schedules.length === 0) {
+          throw new Error("Không tìm thấy lịch khám phù hợp cho khung giờ cố định này!");
+        }
+        if (schedules[0].current_booking >= schedules[0].max_booking) {
+          throw new Error("Khung giờ này đã đầy chỗ!");
+        }
+        scheduleId = schedules[0].id;
+      }
+
+      // 6. LƯU VÀO BẢNG BOOKINGS - FIX TÊN CỘT THÀNH locationId
       const sqlBooking = `
         INSERT INTO bookings (
           patient_id, profile_id, doctor_id, service_id, price, 
-          date, time, reason, address, status, is_deleted, created_at, updated_at
+          date, time, reason, locationId, status, is_deleted, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NOW(), NOW())`;
       
       const [res] = await connection.execute(sqlBooking, [
@@ -69,16 +81,14 @@ class BookingRepository {
         bookingDate, 
         timeVal, 
         data.reason || "",
-        address // LƯU ĐỊA CHỈ VÀO ĐÂY
+        locationId // Truyền ID vào cột locationId
       ]);
       
       const newBookingId = res.insertId;
 
-      // 5. LƯU ẢNH (Hứng cả photos từ JSON và photosList từ gRPC)
+      // 7. Lưu ảnh
       const photosArray = data.photosList || data.photos;
-
-      if (photosArray && Array.isArray(photosArray) && photosArray.length > 0) {
-        console.log(">>> Đang thực hiện lưu ảnh cho booking:", newBookingId);
+      if (photosArray && Array.isArray(photosArray)) {
         for (const url of photosArray) {
           if (url && url.trim() !== "") {
             await connection.execute(
@@ -89,11 +99,13 @@ class BookingRepository {
         }
       }
 
-      // 6. Cập nhật slot
-      await connection.execute(
-        "UPDATE schedules SET current_booking = current_booking + 1 WHERE id = ?",
-        [schedules[0].id]
-      );
+      // 8. Cập nhật slot
+      if (scheduleId) {
+        await connection.execute(
+          "UPDATE schedules SET current_booking = current_booking + 1 WHERE id = ?",
+          [scheduleId]
+        );
+      }
 
       await connection.commit();
       return newBookingId;
@@ -106,9 +118,19 @@ class BookingRepository {
   }
 
   async getHistory(patientId) {
-    const sql = `SELECT * FROM view_booking_history 
-                  WHERE patient_id = ? AND is_deleted = 0 
-                  ORDER BY created_at DESC`;
+    // Join với bảng locations bằng cột locationId (CamelCase)
+    const sql = `
+      SELECT b.*, d.name as doctor_name, p.name as patient_name, s.name as service_name,
+      l.address_detail, l.ward, l.district, l.province,
+      IF(b.time = 'TIME_CUSTOM', 'Giờ theo yêu cầu', ac.value_vi) as time_display
+      FROM bookings b
+      LEFT JOIN doctors d ON b.doctor_id = d.id
+      LEFT JOIN patient_profiles p ON b.profile_id = p.id
+      LEFT JOIN services s ON b.service_id = s.id
+      LEFT JOIN locations l ON b.locationId = l.id
+      LEFT JOIN allcodes ac ON b.time = ac.\`key\` AND ac.type = 'TIME'
+      WHERE b.patient_id = ? AND b.is_deleted = 0 
+      ORDER BY b.created_at DESC`;
 
     const [rows] = await db.execute(sql, [patientId]);
     return rows;
@@ -124,20 +146,22 @@ class BookingRepository {
         [bookingId, patientId]
       );
 
-      if (bookings.length === 0) throw new Error("Không tìm thấy đơn hàng hợp lệ để hủy!");
-      if (bookings[0].status !== 'pending') throw new Error("Đơn hàng này không thể hủy (đã khám hoặc đã hủy trước đó)!");
+      if (bookings.length === 0) throw new Error("Không tìm thấy đơn hàng!");
+      if (bookings[0].status !== 'pending') throw new Error("Chỉ có thể hủy đơn hàng ở trạng thái chờ!");
 
       await connection.execute(
         "UPDATE bookings SET status='cancelled', updated_at=NOW() WHERE id=?", 
         [bookingId]
       );
 
-      await connection.execute(
-        `UPDATE schedules 
-          SET current_booking = GREATEST(0, current_booking - 1) 
-          WHERE doctor_id=? AND date=? AND time_type=?`, 
-        [bookings[0].doctor_id, bookings[0].date, bookings[0].time]
-      );
+      if (bookings[0].time !== 'TIME_CUSTOM') {
+          await connection.execute(
+            `UPDATE schedules 
+              SET current_booking = GREATEST(0, current_booking - 1) 
+              WHERE doctor_id=? AND date=? AND time_type=?`, 
+            [bookings[0].doctor_id, bookings[0].date, bookings[0].time]
+          );
+      }
 
       await connection.commit();
       return true;
@@ -154,4 +178,5 @@ class BookingRepository {
     return true;
   }
 }
+
 module.exports = new BookingRepository();

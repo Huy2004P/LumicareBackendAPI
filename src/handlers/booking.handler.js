@@ -4,10 +4,17 @@ module.exports = {
   // 1. Đặt lịch khám mới
   CreateBooking: async (call, callback) => {
     try {
-      // call.request lúc này đã có .address từ Proto truyền xuống
+      // call.request lúc này đã có .location_id từ Proto truyền xuống
+      // Service sẽ tự xử lý việc convert userId sang patientId và locationId sang chuỗi address
       const id = await bookingService.createBooking(call.request);
-      callback(null, { success: true, message: "Đặt lịch thành công!", booking_id: id });
+      
+      callback(null, { 
+        success: true, 
+        message: "Đặt lịch khám thành công!", 
+        booking_id: id 
+      });
     } catch (e) { 
+      console.error(">>> [Booking Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   },
@@ -31,11 +38,12 @@ module.exports = {
           patient_name: i.patient_name || "Bản thân",
           service_name: i.service_name || "Khám lẻ",
           price: parseFloat(i.booking_price) || 0,
-          // BỔ SUNG: Trả thêm address về cho App hiển thị
+          // BỔ SUNG: Trả thêm address về cho App hiển thị (địa chỉ dạng chuỗi đã lưu trong DB)
           address: i.address || "" 
         }))
       });
     } catch (e) { 
+      console.error(">>> [Booking History Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   },
@@ -44,8 +52,9 @@ module.exports = {
   CancelBooking: async (call, callback) => {
     try {
       const bookingId = call.request.booking_id || call.request.bookingId; 
+      const userId = call.request.patient_id || call.request.patientId;
       
-      await bookingService.cancelBooking(bookingId, call.request.patient_id);
+      await bookingService.cancelBooking(bookingId, userId);
       
       callback(null, { 
         success: true, 
@@ -53,6 +62,7 @@ module.exports = {
         booking_id: bookingId 
       });
     } catch (e) { 
+      console.error(">>> [Cancel Booking Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   },
@@ -70,6 +80,7 @@ module.exports = {
         booking_id: bookingId 
       });
     } catch (e) { 
+      console.error(">>> [Delete Booking Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   }

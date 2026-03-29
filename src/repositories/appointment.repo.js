@@ -1,6 +1,21 @@
 const db = require("../config/database");
 
 class AppointmentRepository {
+  async getDoctorUserById(doctorId) {
+  const sql = `
+    SELECT 
+      u.id as user_id, 
+      u.email, 
+      d.full_name,  -- Đã sửa thành full_name theo ảnh DB
+      d.id as doctor_id 
+    FROM users u
+    JOIN doctors d ON u.id = d.user_id
+    WHERE d.id = ? AND u.is_deleted = 0
+    LIMIT 1
+  `;
+  const [rows] = await db.execute(sql, [doctorId]);
+  return rows.length > 0 ? rows[0] : null;
+}
   // 1. Lấy danh sách bệnh nhân (JOIN nhiều bảng để lấy tên, giờ, giới tính...)
   async getListPatientForDoctor(doctorId, date) {
     const sql = `
