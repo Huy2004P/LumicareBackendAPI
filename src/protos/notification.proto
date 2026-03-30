@@ -3,17 +3,15 @@ syntax = "proto3";
 package notification;
 
 service NotificationService {
-  // 1. Lấy danh sách thông báo của tôi
   rpc GetMyNotifications (GetMyNotificationsRequest) returns (NotificationListResponse);
-
-  // 2. Đánh dấu đã đọc
   rpc MarkAsRead (MarkAsReadRequest) returns (StatusResponse);
+  rpc MarkAllAsRead (MarkAllAsReadRequest) returns (StatusResponse);
+  rpc CreateNotification (CreateNotificationRequest) returns (StatusResponse);
+  rpc StreamNotifications (StreamRequest) returns (stream NotificationItem);
 }
 
-// Dùng chung cho các phản hồi trạng thái đơn giản
-message StatusResponse { 
-  bool success = 1; 
-  string message = 2; 
+message StreamRequest { 
+  int32 user_id = 1; 
 }
 
 message GetMyNotificationsRequest { 
@@ -21,13 +19,30 @@ message GetMyNotificationsRequest {
 }
 
 message MarkAsReadRequest { 
-  int32 id = 1; 
+  int32 id = 1;
+  int32 user_id = 2; 
+}
+
+message MarkAllAsReadRequest {
+  int32 user_id = 1;
+}
+
+message CreateNotificationRequest {
+  int32 user_id = 1;
+  string title = 2;
+  string message = 3;
+  string type = 4;
+}
+
+message StatusResponse { 
+  bool success = 1; 
+  string message = 2; 
 }
 
 message NotificationItem {
   int32 id = 1;
   int32 user_id = 2;
-  string title = 3;   // <-- THÊM DÒNG NÀY: Để Flutter hiện tiêu đề in đậm
+  string title = 3;
   string message = 4; 
   string type = 5;
   bool is_read = 6;
@@ -36,6 +51,6 @@ message NotificationItem {
 
 message NotificationListResponse {
   bool success = 1;
-  string message = 2; // <-- THÊM DÒNG NÀY: Để báo "Lấy danh sách thành công"
+  string message = 2;
   repeated NotificationItem data = 3;
 }

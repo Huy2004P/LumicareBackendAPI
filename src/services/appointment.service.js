@@ -1,19 +1,17 @@
 const appointmentRepo = require("../repositories/appointment.repo");
 const notificationService = require("./notification.service");
+
 class AppointmentService {
-  
-  // Logic lấy danh sách
+  // 1. Lấy danh sách bệnh nhân cho bác sĩ
   async getListPatient(doctorId, date) {
     if (!doctorId || !date) {
       throw new Error("Thiếu thông tin bác sĩ hoặc ngày khám!");
     }
-    // Gọi Repo lấy dữ liệu thô
-    const patients = await appointmentRepo.getListPatientForDoctor(doctorId, date);
-    return patients;
+    return await appointmentRepo.getListPatientForDoctor(doctorId, date);
   }
 
-  // Logic duyệt lịch
- async verifyBooking(doctorId, bookingId, status) {
+  // 2. Duyệt/Cập nhật trạng thái lịch hẹn
+  async verifyBooking(doctorId, bookingId, status) {
     if (!bookingId) throw new Error("Thiếu ID lịch hẹn!");
     const finalStatus = status || 'confirmed';
     const isUpdated = await appointmentRepo.verifyBooking(bookingId, finalStatus);
@@ -22,27 +20,31 @@ class AppointmentService {
 
     try {
       const bookingInfo = await appointmentRepo.getBookingById(bookingId);
-      const statusMessages = {
-        'confirmed': "Lịch khám của bạn đã được bác sĩ xác nhận! ✅",
-        'arrived': "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị! 🏠",
-        'canceled': "Rất tiếc, bác sĩ đã hủy lịch khám của bạn. ❌",
-        'finished': "Buổi khám đã kết thúc. Cảm ơn bạn đã tin tưởng! ✨"
-    };
+      if (bookingInfo && bookingInfo.user_id) {
+        const statusMessages = {
+          'confirmed': "Lịch khám của bạn đã được bác sĩ xác nhận! ✅",
+          'arrived': "Bác sĩ đã đến địa chỉ của bạn. Vui lòng chuẩn bị! 🏠",
+          'canceled': `Rất tiếc, bác sĩ đã hủy lịch khám vì lý do khách quan. ❌`,
+          'finished': "Buổi khám đã kết thúc. Chúc bạn sớm bình phục! ✨"
+        };
 
-    const msg = statusMessages[finalStatus];
-    if (msg && bookingInfo.user_id) {
-        await notificationService.sendNotification(bookingInfo.user_id, msg, 'booking');
+        const msg = statusMessages[finalStatus];
+        if (msg) {
+          await notificationService.sendNotification(bookingInfo.user_id, msg, 'booking', 'Cập nhật lịch hẹn');
+        }
+      }
+    } catch (notiError) { 
+      console.error(">>> [Notification Error] verifyBooking:", notiError.message); 
     }
-    } catch (notiError) { console.error("Lỗi gửi thông báo:", notiError); }
     return true;
   }
 
-  // Logic hoàn tất khám
+  // 3. Hoàn tất khám (Trả kết quả)
   async finishAppointment(data) {
     if (!data.booking_id || !data.doctor_id) throw new Error("Thiếu ID!");
     if (!data.diagnosis) throw new Error("Vui lòng nhập chẩn đoán bệnh!");
 
-    // Map prescriptions sang treatments (giữ nguyên logic của ông)
+    // Chuyển đơn thuốc sang dạng treatment để lưu DB
     if (data.prescriptions && data.prescriptions.length > 0) {
       data.treatments = data.prescriptions.map(item => ({
         name: item.medicine_name || item.name,
@@ -50,21 +52,26 @@ class AppointmentService {
         instruction: item.instruction || "Uống sau khi ăn",
         repeat_days: item.days || 7
       }));
-    } else { data.prescriptions = []; }
+    } else {
+      data.treatments = [];
+    }
 
     const recordId = await appointmentRepo.finishAppointmentTransaction(data);
 
-    // GỬI TIN CHO BỆNH NHÂN SAU KHI KHÁM XONG
+    // Gửi tin cho bệnh nhân kèm lời dặn sơ bộ
     try {
       const bookingInfo = await appointmentRepo.getBookingById(data.booking_id);
       if (bookingInfo && bookingInfo.user_id) {
         await notificationService.sendNotification(
           bookingInfo.user_id, 
-          "Bác sĩ đã hoàn tất buổi khám. Bạn có thể xem đơn thuốc và lịch nhắc thuốc ngay bây giờ! 💊", 
-          'treatment'
+          `Bác sĩ đã có kết quả chẩn đoán: ${data.diagnosis}. Hãy xem chi tiết đơn thuốc và lời dặn ngay! 💊`, 
+          'treatment',
+          'Kết quả điều trị'
         );
       }
-    } catch (e) { console.error("Lỗi gửi thông báo khám xong:", e); }
+    } catch (e) { 
+      console.error(">>> [Notification Error] finishAppointment:", e.message); 
+    }
 
     return recordId;
   }

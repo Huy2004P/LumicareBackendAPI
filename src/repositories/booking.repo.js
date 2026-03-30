@@ -1,4 +1,5 @@
 const db = require("../config/database");
+const profileRepo = require("./patientProfile.repo");
 
 class BookingRepository {
   async createBookingTransaction(data) {
@@ -120,7 +121,7 @@ class BookingRepository {
   async getHistory(patientId) {
     // Join với bảng locations bằng cột locationId (CamelCase)
     const sql = `
-      SELECT b.*, d.name as doctor_name, p.name as patient_name, s.name as service_name,
+      SELECT b.*, d.full_name as doctor_name, p.full_name as patient_name, s.name as service_name,
       l.address_detail, l.ward, l.district, l.province,
       IF(b.time = 'TIME_CUSTOM', 'Giờ theo yêu cầu', ac.value_vi) as time_display
       FROM bookings b
@@ -136,30 +137,58 @@ class BookingRepository {
     return rows;
   }
 
-  async cancelBooking(bookingId, patientId) {
+  async cancelBooking(bookingId, inputId, reason) {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
 
-      const [bookings] = await connection.execute(
-        "SELECT * FROM bookings WHERE id=? AND patient_id=? AND is_deleted=0 FOR UPDATE", 
-        [bookingId, patientId]
-      );
+      // 1. Chuyển đổi ID (User 22 -> Patient 3)
+      const profileRepo = require("./patientProfile.repo");
+      let actualPatientId = await profileRepo.getPatientIdByUserId(inputId);
+      if (!actualPatientId) actualPatientId = inputId;
 
-      if (bookings.length === 0) throw new Error("Không tìm thấy đơn hàng!");
-      if (bookings[0].status !== 'pending') throw new Error("Chỉ có thể hủy đơn hàng ở trạng thái chờ!");
-
-      await connection.execute(
-        "UPDATE bookings SET status='cancelled', updated_at=NOW() WHERE id=?", 
+      // 2. Lấy dữ liệu (Chỉ lấy theo ID để kiểm tra trước)
+      const [rows] = await connection.execute(
+        "SELECT id, patient_id, status, doctor_id, date, time FROM bookings WHERE id = ? AND is_deleted = 0 FOR UPDATE",
         [bookingId]
       );
 
-      if (bookings[0].time !== 'TIME_CUSTOM') {
+      if (rows.length === 0) throw new Error("Không tìm thấy đơn hàng!");
+      
+      const booking = rows[0];
+
+      // 🕵️‍♂️ SOI LỖI: In ra Terminal xem thực sự cái status là gì
+      console.log(`-----------------------------------------`);
+      console.log(`🔍 [DEBUG CANCEL] ID: ${booking.id}`);
+      console.log(`🔍 [DEBUG CANCEL] Status trong DB: "${booking.status}" (Độ dài: ${booking.status ? booking.status.length : 0})`);
+      console.log(`🔍 [DEBUG CANCEL] Patient ID trong DB: ${booking.patient_id}`);
+      console.log(`-----------------------------------------`);
+
+      // 3. Kiểm tra quyền
+      if (booking.patient_id != actualPatientId) {
+        throw new Error("Bạn không có quyền hủy lịch hẹn này!");
+      }
+
+      // 4. Kiểm tra trạng thái (Ép về string và xóa khoảng trắng)
+      const currentStatus = String(booking.status || "").trim().toLowerCase();
+
+      if (currentStatus !== 'pending') {
+        // Nếu nó vẫn rỗng, nó sẽ báo: Đơn hàng đang ở trạng thái 'Rỗng', không thể hủy!
+        throw new Error(`Đơn hàng đang ở trạng thái '${currentStatus || 'Rỗng'}', không thể hủy!`);
+      }
+
+      // 5. Cập nhật (Dùng 2 chữ L theo ảnh CMS của ông)
+      await connection.execute(
+        "UPDATE bookings SET status = 'cancelled', cancel_reason = ?, updated_at = NOW() WHERE id = ?", 
+        [reason || "Người dùng không cung cấp lý do", bookingId]
+      );
+
+      // 6. Hoàn trả Slot
+      if (booking.time !== 'TIME_CUSTOM') {
           await connection.execute(
-            `UPDATE schedules 
-              SET current_booking = GREATEST(0, current_booking - 1) 
-              WHERE doctor_id=? AND date=? AND time_type=?`, 
-            [bookings[0].doctor_id, bookings[0].date, bookings[0].time]
+            `UPDATE schedules SET current_booking = GREATEST(0, current_booking - 1) 
+             WHERE doctor_id = ? AND date = ? AND time_type = ?`, 
+            [booking.doctor_id, booking.date, booking.time]
           );
       }
 

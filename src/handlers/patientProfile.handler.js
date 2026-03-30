@@ -52,8 +52,15 @@ module.exports = {
   // 3. Update
   UpdateProfile: (call, callback) => {
     safeCall(callback, async () => {
+      // 🕵️‍♂️ LOG ĐỂ ÔNG SOI BÊN FRONTEND GỬI GÌ XUỐNG NÈ
+      console.log("-----------------------------------------");
+      console.log("🚀 [DEBUG UPDATE] Dữ liệu từ Flutter:", JSON.stringify(call.request, null, 2));
+      console.log("-----------------------------------------");
+
       const updatedProfile = await service.updateProfile(call.request);
-      return mapToProto(updatedProfile);
+      
+      // Trả về cho Flutter, nhớ truyền call.request.user_id vào mapToProto
+      return mapToProto(updatedProfile, call.request.user_id);
     });
   },
 

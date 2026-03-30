@@ -1,32 +1,34 @@
 const notificationService = require("../services/notification.service");
 
 module.exports = {
-  GetMyNotifications: (call, callback) => {
-    const safeCall = async () => {
-      try {
-        const notifications = await notificationService.getMyNotifications(call.request.user_id);
-        
-        const data = notifications.map(n => ({
-          id: n.id,
-          user_id: n.user_id,
-          title: n.title || "Thông báo", // Thêm title
-          message: n.message,
-          type: n.type,
-          is_read: n.is_read === 1 || n.is_read === true,
-          created_at: n.created_at ? new Date(n.created_at).toISOString() : ""
-        }));
-
-        callback(null, { success: true, message: "Lấy danh sách thành công", data });
-      } catch (error) {
-        callback({ code: 13, message: error.message });
-      }
-    };
-    safeCall();
+  StreamNotifications: (call) => {
+    const { user_id } = call.request;
+    notificationService.subscribeNotifications(user_id, call);
   },
 
-  MarkAsRead: (call, callback) => {
-    notificationService.markAsRead(call.request.id)
-      .then(() => callback(null, { success: true, message: "Đã đọc" }))
-      .catch(e => callback({ code: 13, message: e.message }));
+  GetMyNotifications: async (call, callback) => {
+    try {
+      const response = await notificationService.getMyNotifications(call.request.user_id);
+      callback(null, response);
+    } catch (e) {
+      callback({ code: 13, message: e.message });
+    }
+  },
+
+  MarkAsRead: async (call, callback) => {
+    const { id, user_id } = call.request;
+    const response = await notificationService.markAsRead(id, user_id);
+    callback(null, response);
+  },
+
+  MarkAllAsRead: async (call, callback) => {
+    const response = await notificationService.markAllAsRead(call.request.user_id);
+    callback(null, response);
+  },
+
+  CreateNotification: async (call, callback) => {
+    const { user_id, message, type, title } = call.request;
+    const response = await notificationService.sendNotification(user_id, message, type, title);
+    callback(null, { success: response.success, message: response.message });
   }
 };

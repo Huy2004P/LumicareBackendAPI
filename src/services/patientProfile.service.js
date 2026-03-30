@@ -40,12 +40,10 @@ class PatientProfileService {
   }
 
   async updateProfile(data) {
-    if (!data.id || !data.user_id) throw new Error("Thiếu ID!");
-
-    const actualPatientId = await this._getActualPatientId(data.user_id);
-
-    // 🎯 Kiểm tra xem hồ sơ có tồn tại và có thuộc về user này không
-    const current = await profileRepo.getById(data.id, actualPatientId);
+    const patientId = data.user_id; // Lấy số 3 từ log của ông
+    
+    // Kiểm tra xem hồ sơ (id=6) có thuộc về Patient (3) không
+    const current = await profileRepo.getById(data.id, patientId);
     if (!current) throw new Error("Hồ sơ không tồn tại hoặc bạn không có quyền sửa!");
 
     const finalData = {
@@ -57,10 +55,10 @@ class PatientProfileService {
       relationship: data.relationship || current.relationship
     };
 
-    const isUpdated = await profileRepo.update(data.id, actualPatientId, finalData);
+    const isUpdated = await profileRepo.update(data.id, patientId, finalData);
     if (!isUpdated) throw new Error("Cập nhật thất bại!");
 
-    return { id: data.id, ...finalData, success: true };
+    return { id: data.id, ...finalData, user_id: patientId };
   }
 
   async deleteProfile(id, userId) {

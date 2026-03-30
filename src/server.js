@@ -176,6 +176,12 @@ const notificationPackage = loadProto("notification.proto").notification;
 server.addService(notificationPackage.NotificationService.service, {
   GetMyNotifications: notificationHandler.GetMyNotifications,
   MarkAsRead: notificationHandler.MarkAsRead,
+  // 🎯 THÊM DÒNG NÀY VÀO NÈ HUY
+  StreamNotifications: notificationHandler.StreamNotifications, 
+  
+  // Nếu ông có làm mấy hàm này thì thêm luôn cho đủ bộ
+  MarkAllAsRead: notificationHandler.MarkAllAsRead,
+  CreateNotification: notificationHandler.CreateNotification,
 });
 
 // 10. STATISTIC
