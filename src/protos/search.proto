@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package search;
+
+service SearchService {
+  // Tìm kiếm toàn cục từ HomeBar
+  rpc GlobalSearch (SearchRequest) returns (SearchResponse);
+
+  // (Mở rộng) Gợi ý từ khóa khi người dùng đang gõ (Autocomplete)
+  rpc GetSuggestions (SearchRequest) returns (SuggestionResponse);
+}
+
+message SearchRequest {
+  string query = 1;      // Từ khóa: "Thoại", "Nhi", "Khám"...
+  int32 limit = 2;       // Giới hạn kết quả (mặc định nên là 10-15)
+}
+
+message SearchResponse {
+  bool success = 1;
+  string message = 2;
+  repeated SearchResult data = 3;
+}
+
+message SearchResult {
+  string id = 1;         // ID của đối tượng (Bác sĩ, Chuyên khoa...)
+  string type = 2;       // Phân loại: "DOCTOR", "SPECIALTY", "SERVICE"
+  string title = 3;      // Tên hiển thị chính (Văn Bá Phát Huy)
+  string subtitle = 4;   // Mô tả phụ (Bác sĩ Chuyên khoa II)
+  string image = 5;      // Link ảnh thumbnail
+}
+
+message SuggestionResponse {
+  bool success = 1;
+  repeated string keywords = 2; // Trả về list text gợi ý: ["Bác sĩ Thoại", "Khám Nhi", "Khám Mắt"]
+}

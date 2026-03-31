@@ -50,6 +50,18 @@ module.exports = {
   // 3. Hoàn tất khám bệnh
   FinishAppointment: (call, callback) => {
     safeCall(callback, async () => {
+      // --- ĐOẠN KIỂM TRA DỮ LIỆU ---
+      console.log("-----------------------------------------");
+      console.log(">>> [DEBUG] Dữ liệu nhận từ Client:", JSON.stringify(call.request, null, 2));
+      
+      if (!call.request.treatments || call.request.treatments.length === 0) {
+        console.warn("⚠️ [CẢNH BÁO] Mảng treatments gửi xuống bị RỖNG hoặc không có!");
+      } else {
+        console.log("✅ [DEBUG] Mảng treatments có:", call.request.treatments.length, "phần tử");
+      }
+      console.log("-----------------------------------------");
+      // ----------------------------
+
       // Truyền nguyên cục request sang service xử lý
       const recordId = await appointmentService.finishAppointment(call.request);
       return { 

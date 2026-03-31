@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package treatment;
+
+service TreatmentService {
+  rpc GetTreatmentByBooking (TreatmentRequest) returns (TreatmentResponse);
+  
+  // Lấy danh sách kết quả khám của người dùng
+  rpc GetUserMedicalRecords (UserRecordsRequest) returns (UserRecordsResponse);
+}
+
+message UserRecordsRequest {
+  int32 user_id = 1;
+}
+
+message UserRecordsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated MedicalRecordSummary data = 3;
+}
+
+message MedicalRecordSummary {
+  int32 booking_id = 1;
+  string exam_date = 2;      
+  string doctor_name = 3;    
+  string diagnosis = 4;      
+  string specialty_name = 5; 
+}
+
+message TreatmentRequest {
+  int32 booking_id = 1;
+}
+
+message TreatmentResponse {
+  bool success = 1;
+  string message = 2;
+  TreatmentData data = 3;
+}
+
+message TreatmentData {
+  string diagnosis = 1;
+  string symptoms = 2;
+  string treatment_plan = 3;
+  string re_exam_date = 4;
+  repeated DetailedInstruction instructions = 5; 
+  repeated MedicineData medicines = 6;
+}
+
+message DetailedInstruction {
+  string name = 1;
+  string times = 2;
+  string instruction = 3;
+}
+
+message MedicineData {
+  string medicine_name = 1;
+  int32 quantity = 2;
+  string instruction = 3;
+}

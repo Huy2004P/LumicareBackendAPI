@@ -82,21 +82,25 @@ class AppointmentRepository {
 
       //Lưu treatments vào bảng treatments (Nếu có)
       if (data.treatments && data.treatments.length > 0) {
-        const treatmentPromises = data.treatments.map((t) => {
-          return connection.execute(
-            `INSERT INTO treatments (appointment_id, name, times, instruction, repeat_days) 
-             VALUES (?, ?, ?, ?, ?)`,
-            [
-              appointmentId, 
-              t.name, 
-              t.times || 2, 
-              t.instruction || '', 
-              t.repeat_days || 7
-            ]
-          );
-        });
-        await Promise.all(treatmentPromises);
-      }
+  console.log(">>> [DEBUG] Đang lưu vào bảng treatments:", data.treatments.length, "dòng");
+  
+  for (const t of data.treatments) {
+    await connection.execute(
+      `INSERT INTO treatments (appointment_id, name, times, instruction, repeat_days) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        appointmentId, 
+        t.name, 
+        t.times || '', 
+        t.instruction || '', 
+        t.repeat_days || ''
+      ]
+    );
+  }
+  console.log(">>> [DEBUG] Lưu bảng treatments THÀNH CÔNG");
+} else {
+  console.log(">>> [DEBUG] Mảng data.treatments bị RỖNG hoặc UNDEFINED nên không lưu!");
+}
 
       // B4: Lưu đơn thuốc (Giữ nguyên logic cũ của ông)
       if (data.medicines && data.medicines.length > 0) {

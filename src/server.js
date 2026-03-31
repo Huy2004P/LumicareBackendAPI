@@ -48,6 +48,8 @@ const statisticHandler = require("./handlers/statistic.handler");
 const feedbackHandler = require("./handlers/feedback.handler");
 const locationHandler = require("./handlers/location.handler");
 const checkAuth = require("./utils/grpc.interceptor");
+const searchHandler = require("./handlers/search.handler");
+const treatmentHandler = require("./handlers/treatment.handler");
 
 const server = new grpc.Server();
 
@@ -208,6 +210,20 @@ server.addService(locationPackage.LocationService.service, {
   SetDefaultLocation: checkAuth(locationHandler.setDefaultLocation)
 });
 
+// 13. SEARCH
+// Tạo hàm load cho search.proto
+const searchPackage = loadProto("search.proto").search;
+server.addService(searchPackage.SearchService.service, {
+  GlobalSearch: searchHandler.GlobalSearch,
+  GetSuggestions: searchHandler.GetSuggestions
+});
+
+// 14. TREATMENT
+const treatmentProto = loadProto("treatment.proto").treatment;
+server.addService(treatmentProto.TreatmentService.service, {
+  GetTreatmentByBooking: treatmentHandler.GetTreatmentByBooking,
+  GetUserMedicalRecords: treatmentHandler.GetUserMedicalRecords
+});
 // --- KHỞI ĐỘNG SERVER ---
 const PORT = process.env.PORT || 50051;
 server.bindAsync(

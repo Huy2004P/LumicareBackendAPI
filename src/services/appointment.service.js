@@ -44,18 +44,28 @@ class AppointmentService {
     if (!data.booking_id || !data.doctor_id) throw new Error("Thiếu ID!");
     if (!data.diagnosis) throw new Error("Vui lòng nhập chẩn đoán bệnh!");
 
-    // Chuyển đơn thuốc sang dạng treatment để lưu DB
-    if (data.prescriptions && data.prescriptions.length > 0) {
-      data.treatments = data.prescriptions.map(item => ({
-        name: item.medicine_name || item.name,
-        times: item.times_per_day || 2,
-        instruction: item.instruction || "Uống sau khi ăn",
-        repeat_days: item.days || 7
-      }));
-    } else {
-      data.treatments = [];
+    // --- LOGIC FIX: KHÔNG ĐỂ MẤT DỮ LIỆU TREATMENTS ---
+    // Nếu Client gửi 'treatments' (như cái JSON nãy ông log) thì giữ nguyên nó
+    if (data.treatments && data.treatments.length > 0) {
+        console.log(">>> [SERVICE] Giữ nguyên treatments từ Client:", data.treatments.length);
+    } 
+    // Nếu không có 'treatments' nhưng có 'prescriptions' (để tương thích ngược)
+    else if (data.prescriptions && data.prescriptions.length > 0) {
+        console.log(">>> [SERVICE] Chuyển đổi từ prescriptions sang treatments");
+        data.treatments = data.prescriptions.map(item => ({
+          name: item.medicine_name || item.name,
+          times: item.times_per_day || 2,
+          instruction: item.instruction || "Uống sau khi ăn",
+          repeat_days: item.days || 7
+        }));
+    } 
+    // Nếu cả hai đều rỗng thì mới gán mảng rỗng
+    else {
+        data.treatments = [];
     }
+    // ------------------------------------------------
 
+    // Gọi Repo thực hiện Transaction
     const recordId = await appointmentRepo.finishAppointmentTransaction(data);
 
     // Gửi tin cho bệnh nhân kèm lời dặn sơ bộ
