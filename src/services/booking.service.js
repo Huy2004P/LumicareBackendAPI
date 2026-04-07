@@ -13,12 +13,17 @@ class BookingService {
         actualPatientId = inputId;
     }
 
+    // 🚀 Đảm bảo bốc đúng payment_method từ Flutter gửi qua Proto
+    // Nếu Flutter gửi snake_case (payment_method) hoặc camelCase (paymentMethod) đều nhận hết
+    const paymentMethod = data.payment_method || data.paymentMethod || 'PAY1';
+
     const bookingId = await bookingRepo.createBookingTransaction({ 
       ...data, 
-      patient_id: actualPatientId 
+      patient_id: actualPatientId,
+      payment_method: paymentMethod // 🎯 Chốt hạ phương thức thanh toán truyền xuống Repo
     });
 
-    // Báo tin cho bác sĩ: "Có khách sộp tới nhà nè"
+    // Báo tin cho bác sĩ
     try {
         const doctorId = data.doctor_id || data.doctorId;
         const doctorInfo = await appointmentRepo.getDoctorUserById(doctorId);
@@ -26,7 +31,7 @@ class BookingService {
         if (doctorInfo && doctorInfo.user_id) {
             await notificationService.sendNotification(
                 doctorInfo.user_id, 
-                `Bạn có một yêu cầu khám tại nhà mới từ khách hàng! 📅`, 
+                `Bạn có một yêu cầu khám tại nhà mới! 📅 Phương thức: ${paymentMethod === 'PAY1' ? 'Tiền mặt' : 'Chuyển khoản'}`, 
                 'booking',
                 'Yêu cầu đặt lịch'
             );
@@ -44,31 +49,34 @@ class BookingService {
       if (!actualId) actualId = patientId;
 
       const res = await bookingRepo.getHistory(actualId);
-      if (!res || res.length === 0) return []; // Không throw error để FE dễ xử lý mảng rỗng
+      
+      // 🎯 Trả về list, nếu null thì trả mảng rỗng để FE map ko bị crash
+      if (!res) return []; 
       return res;
   }
 
   // 3. Bệnh nhân chủ động hủy lịch
   async cancelBooking(bookingId, patientId, reason) {
+    // Lưu ý: patientId ở đây thường là userId từ token, Repo nãy tui viết đã có logic convert rồi
     const isSuccess = await bookingRepo.cancelBooking(bookingId, patientId, reason);
     
     if (isSuccess) {
         try {
             const bookingInfo = await appointmentRepo.getBookingById(bookingId);
             if (bookingInfo && bookingInfo.doctor_user_id) {
-                // 🔔 Báo cho bác sĩ kèm lý do luôn cho nó "thật"
                 await notificationService.sendNotification(
                     bookingInfo.doctor_user_id, 
-                    `Lịch hẹn #${bookingId} đã bị hủy. Lý do: ${reason || 'Không có'} ⚠️`, 
+                    `Lịch hẹn #${bookingId} đã bị hủy. Lý do: ${reason || 'Khách thay đổi ý định'} ⚠️`, 
                     'booking',
                     'Lịch hẹn bị hủy'
                 );
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error(">>> [Cancel Notification Error]:", e.message); }
     }
     return isSuccess;
   }
 
+  // 4. Xóa lịch sử (Xóa ảo)
   async deleteBooking(bookingId) {
     return await bookingRepo.deleteBooking(bookingId);
   }

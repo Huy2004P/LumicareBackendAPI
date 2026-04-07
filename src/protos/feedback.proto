@@ -3,25 +3,26 @@ syntax = "proto3";
 package feedback;
 
 service FeedbackService {
-  // 1. Gửi đánh giá sau ca khám
   rpc SendFeedback (FeedbackRequest) returns (FeedbackResponse);
-
-  // 2. Lấy danh sách đánh giá của một bác sĩ
   rpc GetDoctorFeedbacks (DoctorIdRequest) returns (FeedbackListResponse);
-
-  // 3. Lấy tất cả đánh giá (Dành cho Admin)
+  rpc GetClinicFeedbacks (ClinicIdRequest) returns (FeedbackListResponse);
+  rpc GetServiceFeedbacks (ServiceIdRequest) returns (FeedbackListResponse);
   rpc GetAllFeedbacks (Empty) returns (FeedbackListResponse);
 }
 
-// KHÔNG ĐƯỢC THIẾU: Định nghĩa message rỗng cho hàm GetAll
 message Empty {}
 
 message FeedbackRequest {
   int32 booking_id = 1;
   int32 patient_id = 2;
   int32 doctor_id = 3;
-  int32 rating = 4; // 1-5 sao
-  string comment = 5;
+  int32 clinic_id = 4;
+  int32 service_id = 5;
+  int32 rating_doctor = 6;
+  int32 rating_clinic = 7;
+  int32 rating_service = 8;
+  int32 rating_booking = 9;
+  string comment = 10;
 }
 
 message FeedbackResponse {
@@ -29,22 +30,25 @@ message FeedbackResponse {
   string message = 2;
 }
 
-message DoctorIdRequest {
-  int32 doctor_id = 1;
-}
+message DoctorIdRequest { int32 doctor_id = 1; }
+message ClinicIdRequest { int32 clinic_id = 1; }
+message ServiceIdRequest { int32 service_id = 1; }
 
 message FeedbackItem {
   int32 id = 1;
   string patient_name = 2;
-  string doctor_name = 3; // HUY THÊM DÒNG NÀY: Để Admin biết bác sĩ nào được đánh giá
-  int32 rating = 4;
-  string comment = 5;
-  string created_at = 6;
-  int32 booking_id = 7; // Thêm cái này để Admin cần thì đối soát lịch hẹn
+  string patient_avatar = 3;
+  int32 rating_doctor = 4;
+  int32 rating_clinic = 5;
+  int32 rating_service = 6;
+  int32 rating_booking = 7;
+  string comment = 8;
+  string created_at = 9;
+  string doctor_name = 10;
 }
 
 message FeedbackListResponse {
   bool success = 1;
   repeated FeedbackItem data = 2;
-  double average_rating = 3;
+  double avg_rating = 3;
 }

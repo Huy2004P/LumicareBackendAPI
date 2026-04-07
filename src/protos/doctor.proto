@@ -12,6 +12,8 @@ service DoctorService {
 
   // Đổi tên hàm và message ở đây
   rpc GlobalSearch (GlobalSearchRequest) returns (GlobalSearchResponse);
+  rpc UpdateDoctor (UpdateDoctorRequest) returns (DoctorResponse);
+  rpc DeleteDoctor (DoctorIdRequest) returns (StatusResponse);
 }
 
 message StatusResponse {
@@ -37,6 +39,7 @@ message DoctorResponse {
   string clinicName = 11;
   bool active = 12;
   int32 specialtyId = 13;
+  double rating = 14;
 }
 
 message CreateDoctorRequest {
@@ -98,4 +101,17 @@ message SearchResultItem {
 message GlobalSearchResponse {
   bool success = 1;
   repeated SearchResultItem results = 2;
+}
+
+message UpdateDoctorRequest {
+  int32 id = 1;
+  string fullName = 2;
+  string phone = 3;
+  string position = 4;
+  string description = 5;
+  double price = 6;
+  string avatar = 7;
+  int32 specialtyId = 8;
+  int32 roomId = 9;
+  bool active = 10;
 }

@@ -4,7 +4,7 @@ module.exports = {
   SendFeedback: async (call, callback) => {
     try {
       await feedbackService.sendFeedback(call.request);
-      callback(null, { success: true, message: "Cảm ơn ông đã đánh giá!" });
+      callback(null, { success: true, message: "Cam on ban da danh gia" });
     } catch (e) {
       callback({ code: 13, message: e.message });
     }
@@ -13,6 +13,24 @@ module.exports = {
   GetDoctorFeedbacks: async (call, callback) => {
     try {
       const result = await feedbackService.getDoctorFeedbacks(call.request.doctor_id);
+      callback(null, result);
+    } catch (e) {
+      callback({ code: 13, message: e.message });
+    }
+  },
+
+  GetClinicFeedbacks: async (call, callback) => {
+    try {
+      const result = await feedbackService.getClinicFeedbacks(call.request.clinic_id);
+      callback(null, result);
+    } catch (e) {
+      callback({ code: 13, message: e.message });
+    }
+  },
+
+  GetServiceFeedbacks: async (call, callback) => {
+    try {
+      const result = await feedbackService.getServiceFeedbacks(call.request.service_id);
       callback(null, result);
     } catch (e) {
       callback({ code: 13, message: e.message });

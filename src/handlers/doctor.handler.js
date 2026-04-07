@@ -23,7 +23,8 @@ const mapToProto = (d) => ({
   roomName: String(d.room_name || "").normalize('NFC'),
   clinicName: String(d.clinic_name || "").normalize('NFC'),
   active: d.active === 1,
-  specialtyId: parseInt(d.specialty_id) || 0 // Đã fix: Bốc đúng cột từ DB
+  specialtyId: parseInt(d.specialty_id) || 0,
+  rating: parseFloat(d.rating) || 5.0 // 🎯 THÊM DÒNG NÀY: Map vào Proto
 });
 
 module.exports = {
@@ -85,6 +86,19 @@ module.exports = {
           type: item.type
         }))
       };
+    });
+  },
+
+  UpdateDoctor: (call, callback) => {
+    safeCall(callback, async () => {
+      const updatedDoctor = await doctorService.updateDoctor(call.request);
+      return mapToProto(updatedDoctor);
+    });
+  },
+
+  DeleteDoctor: (call, callback) => {
+    safeCall(callback, async () => {
+      return await doctorService.deleteDoctor(call.request.id);
     });
   }
 };

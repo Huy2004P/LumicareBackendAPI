@@ -4,37 +4,56 @@ const protoLoader = require("@grpc/proto-loader");
 const path = require("path");
 const { Server } = require('socket.io');
 const http = require("http");
+const express = require('express'); // 🎯 THÊM EXPRESS
 
-// --- CẤU HÌNH SOCKET.IO ---
-const httpServer = http.createServer();
+// --- 1. KHỞI TẠO EXPRESS & SOCKET.IO ---
+const appExpress = express();
+const httpServer = http.createServer(appExpress); // Cho Express chạy chung httpServer
 const io = new Server(httpServer, {
   cors: { origin: "*" }
 });
 
+// --- 2. LOGIC SOCKET.IO ---
 io.on("connection", (socket) => {
-  console.log(">>> [Socket] Có thiết bị kết nối:", socket.id);
+  console.log("Co thiet bi ket noi socket:", socket.id);
 
   socket.on("register", (userId) => {
     const cleanId = String(userId).replace(/['"]+/g, ''); 
     const roomName = `user_${cleanId}`;
-    
     socket.join(roomName);
-    console.log(`>>> [Socket] User ${cleanId} đã join phòng: ${roomName}`);
+    console.log(`User ${cleanId} da join phong: ${roomName}`);
   });
 
   socket.on("disconnect", () => {
-    console.log(">>> [Socket] Thiết bị ngắt kết nối.");
+    console.log("Thiet bi ngat ket noi socket");
   });
 });
 
-const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
-httpServer.listen(SOCKET_PORT, () => {
-  console.log(`Socket.io đang chạy tại port: ${SOCKET_PORT}`);
+global._io = io; // Lưu biến global để dùng ở các handler khác
+
+// --- 3. 🎯 ROUTE "CỬA SAU" ĐỂ FAKE THANH TOÁN (DÙNG ĐỂ DEMO) ---
+appExpress.get('/fake-pay/:userId', (req, res) => {
+    const userId = req.params.userId;
+    console.log(`🚀 [FAKE PAYMENT] Đang bắn tín hiệu thành công cho User: ${userId}`);
+
+    if (global._io) {
+        // Bắn đúng cái Event mà Flutter đang lắng nghe
+        global._io.to(`user_${userId}`).emit("PAYMENT_SUCCESS_EVENT", {
+            status: "PAID",
+            message: "Hệ thống đã nhận được tiền thành công!"
+        });
+        return res.send(`✅ Đã "phù phép" cho User ${userId} thành công! App sẽ tự nhảy trang.`);
+    }
+    res.status(500).send("❌ Lỗi: Socket.io chưa sẵn sàng");
 });
 
-global._io = io;
+// Chạy Server Socket & Express
+const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
+httpServer.listen(SOCKET_PORT, () => {
+  console.log(`🚀 Socket.io & Fake-Pay Route dang chay tai port: ${SOCKET_PORT}`);
+});
 
-// --- IMPORT HANDLERS ---
+// --- 4. IMPORT CÁC HANDLER gRPC ---
 const authHandler = require("./handlers/auth.handler");
 const profileHandler = require("./handlers/profile.handler");
 const masterHandler = require("./handlers/master_data.handler");
@@ -50,7 +69,10 @@ const locationHandler = require("./handlers/location.handler");
 const checkAuth = require("./utils/grpc.interceptor");
 const searchHandler = require("./handlers/search.handler");
 const treatmentHandler = require("./handlers/treatment.handler");
+const paymentHandler = require("./handlers/payment.handler");
+const userHandler = require("./handlers/user.handler");
 
+// --- 5. CẤU HÌNH gRPC SERVER ---
 const server = new grpc.Server();
 
 const loadProto = (filename) => {
@@ -67,9 +89,7 @@ const loadProto = (filename) => {
   return grpc.loadPackageDefinition(packageDefinition);
 };
 
-// --- ĐĂNG KÝ CÁC SERVICE ---
-
-// 1. AUTH SERVICE
+// Đăng ký các dịch vụ gRPC (Tui giữ nguyên logic cũ của ông)
 const authPackage = loadProto("auth.proto").auth;
 server.addService(authPackage.AuthService.service, {
   Register: authHandler.register,
@@ -81,7 +101,6 @@ server.addService(authPackage.AuthService.service, {
   VerifyOTP: authHandler.VerifyOTP,
 });
 
-// 2. PROFILE SERVICE
 const profilePackage = loadProto("profile.proto").profile;
 server.addService(profilePackage.ProfileService.service, {
   GetMyProfile: checkAuth(profileHandler.GetMyProfile),
@@ -90,7 +109,6 @@ server.addService(profilePackage.ProfileService.service, {
   ChangePassword: checkAuth(profileHandler.ChangePassword),
 });
 
-// 3. MASTER - DATA
 const masterPackage = loadProto("master_data.proto").master_data;
 server.addService(masterPackage.MasterDataService.service, {
   CreateSpecialty: masterHandler.CreateSpecialty,
@@ -128,7 +146,6 @@ server.addService(masterPackage.MasterDataService.service, {
   GetAllCodes: masterHandler.GetAllCodes, 
 });
 
-// 4. DOCTOR SERVICE
 const doctorPackage = loadProto("doctor.proto").doctor;
 server.addService(doctorPackage.DoctorService.service, {
   CreateDoctor: doctorHandler.CreateDoctor,
@@ -137,16 +154,16 @@ server.addService(doctorPackage.DoctorService.service, {
   AssignServiceToDoctor: doctorHandler.AssignServiceToDoctor,
   GetDoctorServices: doctorHandler.GetDoctorServices,
   GlobalSearch: doctorHandler.GlobalSearch,
+  UpdateDoctor: doctorHandler.UpdateDoctor,
+  DeleteDoctor: doctorHandler.DeleteDoctor,
 });
 
-// 5. SCHEDULE
 const schedulePackage = loadProto("schedule.proto").schedule;
 server.addService(schedulePackage.ScheduleService.service, {
   BulkCreateSchedule: checkAuth(scheduleHandler.BulkCreateSchedule),
   GetScheduleByDate: scheduleHandler.GetScheduleByDate,
 });
 
-// 6. BOOKING
 const bookingPackage = loadProto("booking.proto").booking;
 server.addService(bookingPackage.BookingService.service, {
   CreateBooking: checkAuth(bookingHandler.CreateBooking),
@@ -155,7 +172,6 @@ server.addService(bookingPackage.BookingService.service, {
   DeleteBooking: checkAuth(bookingHandler.DeleteBooking),
 });
 
-// 7. APPOINTMENT
 const appointmentPackage = loadProto("appointment.proto").appointment;
 server.addService(appointmentPackage.AppointmentService.service, {
   GetListPatientForDoctor: checkAuth(appointmentHandler.GetListPatientForDoctor),
@@ -163,7 +179,6 @@ server.addService(appointmentPackage.AppointmentService.service, {
   FinishAppointment: checkAuth(appointmentHandler.FinishAppointment),
 });
 
-// 8. PATIENT PROFILE
 const patientProfilePackage = loadProto("patientProfile.proto").patient_profile;
 server.addService(patientProfilePackage.PatientProfileService.service, {
   GetAllProfiles: checkAuth(patientProfileHandler.GetAllProfiles),
@@ -173,67 +188,76 @@ server.addService(patientProfilePackage.PatientProfileService.service, {
   GetProfileById: checkAuth(patientProfileHandler.GetProfileById),
 });
 
-// 9. NOTIFICATION
 const notificationPackage = loadProto("notification.proto").notification;
 server.addService(notificationPackage.NotificationService.service, {
   GetMyNotifications: notificationHandler.GetMyNotifications,
   MarkAsRead: notificationHandler.MarkAsRead,
-  // 🎯 THÊM DÒNG NÀY VÀO NÈ HUY
   StreamNotifications: notificationHandler.StreamNotifications, 
-  
-  // Nếu ông có làm mấy hàm này thì thêm luôn cho đủ bộ
   MarkAllAsRead: notificationHandler.MarkAllAsRead,
   CreateNotification: notificationHandler.CreateNotification,
 });
 
-// 10. STATISTIC
 const statisticPackage = loadProto("statistic.proto").statistic;
 server.addService(statisticPackage.StatisticService.service, {
   GetAdminDashboard: statisticHandler.GetAdminDashboard,
-  GetDoctorDashboard: statisticHandler.GetDoctorDashboard,
 });
 
-// 11. FEEDBACK
 const feedbackPackage = loadProto("feedback.proto").feedback;
 server.addService(feedbackPackage.FeedbackService.service, {
   SendFeedback: feedbackHandler.SendFeedback,
   GetDoctorFeedbacks: feedbackHandler.GetDoctorFeedbacks,
+  GetClinicFeedbacks: feedbackHandler.GetClinicFeedbacks,
+  GetServiceFeedbacks: feedbackHandler.GetServiceFeedbacks,
   GetAllFeedbacks: feedbackHandler.GetAllFeedbacks,
 });
 
-// 12. LOCATION
 const locationPackage = loadProto("location.proto").location;
 server.addService(locationPackage.LocationService.service, {
-  GetPatientLocations: checkAuth(locationHandler.getPatientLocations), // Dùng interceptor để bảo mật
+  GetPatientLocations: checkAuth(locationHandler.getPatientLocations),
   AddNewLocation: checkAuth(locationHandler.addNewLocation),
   DeleteLocation: checkAuth(locationHandler.removeLocation),
   SetDefaultLocation: checkAuth(locationHandler.setDefaultLocation)
 });
 
-// 13. SEARCH
-// Tạo hàm load cho search.proto
 const searchPackage = loadProto("search.proto").search;
 server.addService(searchPackage.SearchService.service, {
   GlobalSearch: searchHandler.GlobalSearch,
   GetSuggestions: searchHandler.GetSuggestions
 });
 
-// 14. TREATMENT
 const treatmentProto = loadProto("treatment.proto").treatment;
 server.addService(treatmentProto.TreatmentService.service, {
   GetTreatmentByBooking: treatmentHandler.GetTreatmentByBooking,
   GetUserMedicalRecords: treatmentHandler.GetUserMedicalRecords
 });
-// --- KHỞI ĐỘNG SERVER ---
+
+// 🎯 ĐẢM BẢO TÊN HÀM KHỚP VỚI HANDLER (Get viết hoa)
+const paymentPackage = loadProto("payment.proto").payment;
+server.addService(paymentPackage.PaymentService.service, {
+  GetPaymentInstruction: paymentHandler.GetPaymentInstruction,
+  PatientConfirmTransfer: paymentHandler.PatientConfirmTransfer,
+  AdminVerifyPayment: paymentHandler.AdminVerifyPayment,
+  GetPaymentStatus: paymentHandler.GetPaymentStatus,
+  GetPaymentList: paymentHandler.GetPaymentList
+});
+
+const userPackage = loadProto("user.proto").user;
+server.addService(userPackage.UserService.service, {
+  GetAllUsers: userHandler.getAllUsers,
+  ToggleUserStatus: userHandler.toggleUserStatus,
+  ResetPassword: userHandler.resetPassword,
+  DeleteUser: userHandler.deleteUser,
+});
+
 const PORT = process.env.PORT || 50051;
 server.bindAsync(
   `0.0.0.0:${PORT}`,
   grpc.ServerCredentials.createInsecure(),
   (error, port) => {
     if (error) {
-      console.error("Lỗi khởi động gRPC Server:", error);
+      console.error("Loi khoi dong gRPC Server:", error);
       return;
     }
-    console.log(`gRPC Server đang chạy tại 0.0.0.0:${PORT}`);
+    console.log(`gRPC Server dang chay tai 0.0.0.0:${PORT}`);
   },
 );

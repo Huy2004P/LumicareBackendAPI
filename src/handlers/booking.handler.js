@@ -6,6 +6,10 @@ module.exports = {
     try {
       // call.request lúc này đã có .location_id từ Proto truyền xuống
       // Service sẽ tự xử lý việc convert userId sang patientId và locationId sang chuỗi address
+      console.log("=======================================");
+  console.log("📥 [gRPC] NHẬN REQUEST ĐẶT LỊCH");
+  console.log("Dữ liệu chi tiết:", JSON.stringify(call.request, null, 2));
+  console.log("=======================================");
       const id = await bookingService.createBooking(call.request);
       
       callback(null, { 
@@ -21,61 +25,37 @@ module.exports = {
 
   GetBookingHistory: async (call, callback) => {
     try {
-      // 🕵️‍♂️ BƯỚC 1: SOI TẬN GỐC DỮ LIỆU GỬI LÊN
-      console.log("-----------------------------------------");
-      console.log("📅 [DEBUG] Flutter đang gọi GetBookingHistory");
-      console.log(">>> FULL REQUEST:", JSON.stringify(call.request, null, 2));
+      const userId = call.request.user_id || call.request.patient_id || call.request.patientId || call.request.userId;
 
-      // BƯỚC 2: TRÍCH XUẤT ID (Thử mọi trường hợp tên biến)
-      const userId = call.request.user_id || 
-                     call.request.patient_id || 
-                     call.request.patientId || 
-                     call.request.userId;
+      if (!userId) throw new Error("Thiếu ID người dùng!");
 
-      console.log(">>> [Xác định] ID sẽ dùng để Query:", userId);
-
-      if (!userId) {
-        console.error("❌ [LỖI] Flutter không gửi bất kỳ ID nào lên!");
-        throw new Error("Thiếu ID người dùng để lấy lịch sử!");
-      }
-
-      // BƯỚC 3: GỌI SERVICE
       const res = await bookingService.getHistory(userId);
-      console.log(`✅ [DB] Tìm thấy ${res.length} bản ghi cho User ${userId}`);
 
-      // BƯỚC 4: MAP DATA VỀ PROTO (Cực kỳ cẩn thận với kiểu dữ liệu)
       const formattedData = res.map(i => {
-        // Log thử 1 dòng đầu tiên để xem tên cột từ DB trả về
-        // console.log(">>> Record thô từ DB:", JSON.stringify(i)); 
-
         return {
           id: i.id,
-          doctor_name: i.doctor_name || "Bác sĩ hệ thống",
-          // Xử lý Date: Tránh lỗi nếu date bị null hoặc không phải kiểu Date
+          doctor_name: i.doctor_name || "Bác sĩ",
           date: i.date ? (i.date instanceof Date ? i.date.toISOString().split('T')[0] : String(i.date)) : "",
           time_display: i.time_display || "Chưa xác định",
           status: i.status || "pending",
           reason: i.reason || "",
           patient_name: i.patient_name || "Bản thân",
           service_name: i.service_name || "Dịch vụ y tế",
-          price: parseFloat(i.booking_price || i.price || 0),
-          address: i.address || i.address_detail || "" 
+          price: parseFloat(i.price || 0),
+          address: i.address || i.address_detail || "",
+          cancel_reason: i.cancel_reason || "",
+          // 🎯 MỚI THÊM: Trả về thông tin thanh toán cho Flutter
+          payment_method: i.payment_method || "PAY1", 
+          payment_status: i.payment_status || 0
         };
       });
-
-      console.log("🚀 [DONE] Đã gửi dữ liệu về cho Flutter");
-      console.log("-----------------------------------------");
 
       callback(null, { 
         success: true, 
         message: "Lấy lịch sử thành công",
         data: formattedData 
       });
-
-    } catch (e) { 
-      console.error("-----------------------------------------");
-      console.error("❌ [Booking History Handler Error]:", e.message);
-      console.error("-----------------------------------------");
+    } catch (e) {
       callback({ code: 13, message: e.message }); 
     }
   },

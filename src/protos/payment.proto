@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package payment;
+
+service PaymentService {
+  // 1. Lấy hướng dẫn (QR/STK) sau khi đặt lịch
+  rpc GetPaymentInstruction (PaymentRequest) returns (PaymentResponse);
+  
+  // 2. KHÁCH HÀNG: Bấm "Tôi đã chuyển khoản" (Dùng cho PAY2, PAY3)
+  // Gọi hàm này để chuyển trạng thái sang "Chờ xác nhận"
+  rpc PatientConfirmTransfer (ConfirmRequest) returns (CommonResponse);
+
+  // 3. ADMIN: Bấm "Xác nhận đã thu tiền" (Dùng cho cả 3 phương thức)
+  // Gọi hàm này để chốt đơn thành công
+  rpc AdminVerifyPayment (AdminVerifyRequest) returns (CommonResponse);
+
+  // 4. Lấy trạng thái thanh toán để hiển thị UI
+  rpc GetPaymentStatus (PaymentStatusRequest) returns (PaymentStatusResponse);
+
+  rpc GetPaymentList (PaymentFilterRequest) returns (PaymentListResponse);
+}
+
+message PaymentRequest {
+  int32 bookingId = 1;
+  string paymentMethod = 2; // PAY1, PAY2, PAY3
+  double totalPrice = 3;
+}
+
+message PaymentResponse {
+  bool success = 1;
+  string qrUrl = 2;
+  string bankInfo = 3;
+  string message = 4;
+}
+
+message ConfirmRequest {
+  int32 bookingId = 1;
+  string transactionId = 2; // Mã tham chiếu khách nhập
+}
+
+message AdminVerifyRequest { int32 bookingId = 1; }
+
+message PaymentStatusRequest { int32 bookingId = 1; }
+
+message PaymentStatusResponse {
+  int32 status = 1; // 0: Unpaid, 1: Paid, 2: Pending (Chờ xác nhận)
+  string message = 2;
+}
+
+message CommonResponse { bool success = 1; string message = 2; }
+
+// Thêm mấy cái message này ở cuối file
+message PaymentFilterRequest {
+  string searchTerm = 1; 
+  int32 status = 2; // -1: Tất cả, 0: Unpaid, 1: Paid, 2: Pending
+}
+
+message PaymentDetail {
+  int32 bookingId = 1;
+  string patientName = 2;
+  double amount = 3;
+  string method = 4;
+  int32 status = 5;
+  string transactionId = 6;
+  string createdAt = 7;
+}
+
+message PaymentListResponse {
+  repeated PaymentDetail payments = 1;
+}

@@ -1,63 +1,48 @@
 const feedbackRepo = require("../repositories/feedback.repo");
-const notificationService = require("./notification.service");
-const appointmentRepo = require("../repositories/appointment.repo");
 
 class FeedbackService {
   async sendFeedback(data) {
-    if (data.rating < 1 || data.rating > 5) throw new Error("Rating từ 1-5 sao thôi ông giáo!");
-    
-    const newFeedback = await feedbackRepo.create(data);
-
-    // Bắn tin cho bác sĩ khi có đánh giá mới
-    try {
-        const bookingInfo = await appointmentRepo.getBookingById(data.booking_id);
-        if (bookingInfo && bookingInfo.doctor_user_id) {
-            await notificationService.sendNotification(
-                bookingInfo.doctor_user_id,
-                `Bạn vừa nhận được đánh giá ${data.rating}⭐ từ bệnh nhân: "${data.comment || 'Không có bình luận'}"`,
-                'system',
-                'Đánh giá mới'
-            );
-        }
-    } catch (e) {
-        console.error(">>> [Notification Error] Feedback alert:", e.message);
-    }
-
-    return newFeedback;
+    return await feedbackRepo.create(data);
   }
 
-  async getDoctorFeedbacks(doctorId) {
-    const feedbacks = await feedbackRepo.getByDoctorId(doctorId);
-    const totalRating = feedbacks.reduce((sum, item) => sum + item.rating, 0);
-    const avg = feedbacks.length > 0 ? (totalRating / feedbacks.length).toFixed(1) : 5.0;
+  async getDoctorFeedbacks(id) {
+    const data = await feedbackRepo.getByTarget('doctor_id', id);
+    return this._formatResponse(data, 'rating_doctor');
+  }
 
+  async getClinicFeedbacks(id) {
+    const data = await feedbackRepo.getByTarget('clinic_id', id);
+    return this._formatResponse(data, 'rating_clinic');
+  }
+
+  async getServiceFeedbacks(id) {
+    const data = await feedbackRepo.getByTarget('service_id', id);
+    return this._formatResponse(data, 'rating_service');
+  }
+
+  _formatResponse(rows, ratingCol) {
+    const count = rows.length;
+    const avg = count > 0 ? (rows.reduce((s, i) => s + i[ratingCol], 0) / count).toFixed(1) : 5.0;
     return {
       success: true,
-      data: feedbacks.map(f => ({
+      data: rows.map(f => ({
         id: f.id,
         patient_name: f.patient_name,
-        rating: f.rating,
+        patient_avatar: f.patient_avatar,
+        rating_doctor: f.rating_doctor,
+        rating_clinic: f.rating_clinic,
+        rating_service: f.rating_service,
+        rating_booking: f.rating_booking,
         comment: f.comment,
-        created_at: f.created_at ? f.created_at.toISOString() : new Date().toISOString()
+        created_at: f.created_at ? f.created_at.toISOString() : ""
       })),
-      average_rating: parseFloat(avg)
+      avg_rating: parseFloat(avg)
     };
   }
 
   async getAllFeedbacks() {
-    const feedbacks = await feedbackRepo.getAll();
-    return {
-      success: true,
-      data: feedbacks.map(f => ({
-        id: f.id,
-        patient_name: f.patient_name,
-        doctor_name: f.doctor_name,
-        booking_id: f.booking_id,
-        rating: f.rating,
-        comment: f.comment,
-        created_at: f.created_at ? f.created_at.toISOString() : null
-      }))
-    };
+    const rows = await feedbackRepo.getAll();
+    return { success: true, data: rows };
   }
 }
 

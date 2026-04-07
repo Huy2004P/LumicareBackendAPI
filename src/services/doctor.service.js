@@ -78,6 +78,22 @@ class DoctorService {
     if (!query || query.trim() === "") return [];
     return await doctorRepo.globalSearch(query, limit);
   }
+
+  async updateDoctor(data) {
+    const doctor = await doctorRepo.findById(data.id);
+    if (!doctor) throw new Error("Không tìm thấy bác sĩ để cập nhật!");
+    
+    await doctorRepo.update(data.id, data);
+    return await this.getDoctorById(data.id);
+  }
+
+  async deleteDoctor(id) {
+    const doctor = await doctorRepo.findById(id);
+    if (!doctor) throw new Error("Bác sĩ không tồn tại hoặc đã bị xóa!");
+
+    // Gọi logic xóa mềm chặt chẽ từ Repo
+    return await doctorRepo.softDeleteDoctor(id);
+  }
 }
 
 module.exports = new DoctorService();

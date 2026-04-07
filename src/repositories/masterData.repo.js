@@ -2,7 +2,7 @@ const db = require("../config/database");
 
 class MasterDataRepo {
   // ==========================================
-  // 1. SPECIALTY (Chuyên khoa)
+  // 1. SPECIALTY (Giữ nguyên gốc)
   // ==========================================
   async createSpecialty(data) {
     const sql = `INSERT INTO specialties (name, description, image, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, 0)`;
@@ -32,7 +32,7 @@ class MasterDataRepo {
   }
 
   // ==========================================
-  // 2. CLINIC (Bệnh viện / Phòng khám)
+  // 2. CLINIC (Định chuẩn lấy Rating trung bình)
   // ==========================================
   async createClinic(data) {
     const sql = `INSERT INTO clinics (name, address, description, image, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, ?, 0)`;
@@ -41,12 +41,25 @@ class MasterDataRepo {
   }
 
   async getClinicById(id) {
-    const [rows] = await db.execute("SELECT * FROM clinics WHERE id = ? AND is_deleted = 0", [id]);
+    const sql = `
+      SELECT c.*, IFNULL(AVG(f.rating_clinic), 5.0) as rating 
+      FROM clinics c 
+      LEFT JOIN feedbacks f ON c.id = f.clinic_id 
+      WHERE c.id = ? AND c.is_deleted = 0
+      GROUP BY c.id`;
+    const [rows] = await db.execute(sql, [id]);
     return rows[0];
   }
 
   async getAllClinics() {
-    const [rows] = await db.execute("SELECT * FROM clinics WHERE is_deleted = 0 ORDER BY id DESC");
+    const sql = `
+      SELECT c.*, IFNULL(AVG(f.rating_clinic), 5.0) as rating 
+      FROM clinics c 
+      LEFT JOIN feedbacks f ON c.id = f.clinic_id 
+      WHERE c.is_deleted = 0 
+      GROUP BY c.id
+      ORDER BY c.id DESC`;
+    const [rows] = await db.execute(sql);
     return { data: rows };
   }
 
@@ -62,7 +75,7 @@ class MasterDataRepo {
   }
 
   // ==========================================
-  // 3. ROOM (Phòng khám cụ thể)
+  // 3. ROOM (Giữ nguyên gốc)
   // ==========================================
   async createRoom(data) {
     const sqlInsert = `INSERT INTO rooms (name, clinic_id, location, description, is_deleted) VALUES (?, ?, ?, ?, 0)`;
@@ -71,59 +84,33 @@ class MasterDataRepo {
   }
 
   async getRoomById(id) {
-    const sql = `
-      SELECT r.*, c.name as clinicName 
-      FROM rooms r 
-      LEFT JOIN clinics c ON r.clinic_id = c.id 
-      WHERE r.id = ? AND r.is_deleted = 0`;
+    const sql = `SELECT r.*, c.name as clinicName FROM rooms r LEFT JOIN clinics c ON r.clinic_id = c.id WHERE r.id = ? AND r.is_deleted = 0`;
     const [rows] = await db.execute(sql, [id]);
     if (rows.length > 0) {
       const room = rows[0];
-      return {
-        id: room.id,
-        name: room.name,
-        clinicId: room.clinic_id,
-        location: room.location,
-        description: room.description,
-        clinicName: room.clinicName || ""
-      };
+      return { id: room.id, name: room.name, clinicId: room.clinic_id, location: room.location, description: room.description, clinicName: room.clinicName || "" };
     }
     return null;
   }
 
   async getAllRooms(clinicId) {
-    let sql = `
-        SELECT r.id, r.name, r.clinic_id AS clinicId, r.location, r.description, c.name AS clinicName 
-        FROM rooms r 
-        LEFT JOIN clinics c ON r.clinic_id = c.id 
-        WHERE r.is_deleted = 0 AND (c.is_deleted = 0 OR c.is_deleted IS NULL)
-    `;
+    let sql = `SELECT r.id, r.name, r.clinic_id AS clinicId, r.location, r.description, c.name AS clinicName FROM rooms r LEFT JOIN clinics c ON r.clinic_id = c.id WHERE r.is_deleted = 0`;
     let params = [];
-    if (clinicId && clinicId !== 0) {
-      sql += " AND r.clinic_id = ?";
-      params.push(clinicId);
-    }
+    if (clinicId && clinicId !== 0) { sql += " AND r.clinic_id = ?"; params.push(clinicId); }
     sql += " ORDER BY r.id DESC";
     const [rows] = await db.execute(sql, params);
     return { data: rows };
   }
 
-  // HUY SOI KỸ HÀM NÀY: Dùng cho GetRoomsByClinicId
   async getRoomsByClinicId(clinicId) {
-    const sql = `
-        SELECT r.id, r.name, r.clinic_id AS clinicId, r.location, r.description, c.name AS clinicName 
-        FROM rooms r 
-        LEFT JOIN clinics c ON r.clinic_id = c.id 
-        WHERE r.clinic_id = ? AND r.is_deleted = 0
-    `;
+    const sql = `SELECT r.id, r.name, r.clinic_id AS clinicId, r.location, r.description, c.name AS clinicName FROM rooms r LEFT JOIN clinics c ON r.clinic_id = c.id WHERE r.clinic_id = ? AND r.is_deleted = 0`;
     const [rows] = await db.execute(sql, [clinicId]);
     return { data: rows };
   }
 
   async updateRoom(data) {
     const sql = `UPDATE rooms SET name=?, clinic_id=?, location=?, description=? WHERE id=? AND is_deleted = 0`;
-    const clinicId = data.clinicId || data.clinic_id;
-    await db.execute(sql, [data.name || null, clinicId, data.location || null, data.description || null, data.id]);
+    await db.execute(sql, [data.name || null, data.clinicId || data.clinic_id, data.location || null, data.description || null, data.id]);
     return this.getRoomById(data.id);
   }
 
@@ -133,62 +120,40 @@ class MasterDataRepo {
   }
 
   // ==========================================
-  // 4. SERVICE (Gói dịch vụ)
+  // 4. SERVICE (Định chuẩn lấy Rating trung bình)
   // ==========================================
   async createService(data) {
     const sql = `INSERT INTO services (name, price, specialty_id, description, image, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`;
-    const [result] = await db.execute(sql, [
-      data.name || null,
-      data.price || 0,
-      data.specialty_id || data.specialtyId || null,
-      data.description || null,
-      data.image || null,
-      data.content_html || data.contentHtml || null,
-      data.content_markdown || data.contentMarkdown || null
-    ]);
+    const [result] = await db.execute(sql, [data.name || null, data.price || 0, data.specialty_id || data.specialtyId || null, data.description || null, data.image || null, data.content_html || data.contentHtml || null, data.content_markdown || data.contentMarkdown || null]);
     return this.getServiceById(result.insertId);
   }
 
   async getServiceById(id) {
     const sql = `
-      SELECT 
-        id, name, price, 
-        specialty_id as specialty_id, 
-        description, image, 
-        content_html as content_html, 
-        content_markdown as content_markdown 
-      FROM services 
-      WHERE id = ? AND is_deleted = 0`;
+      SELECT s.*, IFNULL(AVG(f.rating_service), 5.0) as rating
+      FROM services s
+      LEFT JOIN feedbacks f ON s.id = f.service_id
+      WHERE s.id = ? AND s.is_deleted = 0
+      GROUP BY s.id`;
     const [rows] = await db.execute(sql, [id]);
     return rows[0];
   }
 
   async getAllServices() {
     const sql = `
-      SELECT 
-        id, name, price, description, image, 
-        specialty_id as specialty_id, 
-        content_html as content_html, 
-        content_markdown as content_markdown 
-      FROM services 
-      WHERE is_deleted = 0 
-      ORDER BY id DESC`;
+      SELECT s.*, IFNULL(AVG(f.rating_service), 5.0) as rating
+      FROM services s
+      LEFT JOIN feedbacks f ON s.id = f.service_id
+      WHERE s.is_deleted = 0 
+      GROUP BY s.id
+      ORDER BY s.id DESC`;
     const [rows] = await db.execute(sql);
     return { data: rows };
   }
 
   async updateService(data) {
     const sql = `UPDATE services SET name=?, price=?, specialty_id=?, description=?, image=?, content_html=?, content_markdown=? WHERE id=? AND is_deleted = 0`;
-    await db.execute(sql, [
-      data.name || null,
-      data.price || 0,
-      data.specialty_id || data.specialtyId || null,
-      data.description || null,
-      data.image || null,
-      data.content_html || data.contentHtml || null,
-      data.content_markdown || data.contentMarkdown || null,
-      data.id
-    ]);
+    await db.execute(sql, [data.name || null, data.price || 0, data.specialty_id || data.specialtyId || null, data.description || null, data.image || null, data.content_html || data.contentHtml || null, data.content_markdown || data.contentMarkdown || null, data.id]);
     return this.getServiceById(data.id);
   }
 
@@ -197,6 +162,7 @@ class MasterDataRepo {
     return true;
   }
 
+  // --- GIỮ NGUYÊN GỐC (Bác sĩ riêng) ---
   // --- BẢNG TRUNG GIAN DOCTOR_SERVICES ---
   async getDoctorsByServiceId(serviceId) {
     const sql = `
@@ -210,17 +176,20 @@ class MasterDataRepo {
         d.position, 
         d.specialty_id, 
         d.room_id,
-        s.name as specialty_name
+        s.name as specialty_name,
+        IFNULL(AVG(f.rating_doctor), 5.0) as rating -- 🎯 THÊM DÒNG NÀY
       FROM doctor_services ds
       JOIN doctors d ON ds.doctor_id = d.id
       LEFT JOIN specialties s ON d.specialty_id = s.id
+      LEFT JOIN feedbacks f ON d.id = f.doctor_id -- 🎯 JOIN THÊM FEEDBACKS
       WHERE ds.service_id = ? AND d.is_deleted = 0
+      GROUP BY d.id -- 🎯 BẮT BUỘC CÓ GROUP BY
     `;
     const [rows] = await db.execute(sql, [serviceId]);
     return rows;
   }
 
-  // HUY SOI KỸ HÀM NÀY: Lấy bác sĩ theo Phòng
+  // Lấy bác sĩ theo Phòng
   async getDoctorsByRoomId(roomId) {
     const sql = `
       SELECT 
@@ -233,17 +202,20 @@ class MasterDataRepo {
         d.position, 
         d.specialty_id, 
         d.room_id,
-        s.name as specialty_name
+        s.name as specialty_name,
+        IFNULL(AVG(f.rating_doctor), 5.0) as rating -- 🎯 THÊM DÒNG NÀY
       FROM doctors d
       LEFT JOIN specialties s ON d.specialty_id = s.id
+      LEFT JOIN feedbacks f ON d.id = f.doctor_id -- 🎯 JOIN THÊM FEEDBACKS
       WHERE d.room_id = ? AND d.is_deleted = 0
+      GROUP BY d.id -- 🎯 BẮT BUỘC CÓ GROUP BY
     `;
     const [rows] = await db.execute(sql, [roomId]);
     return rows;
   }
 
   // ==========================================
-  // 5. DRUGS (Thuốc)
+  // 5. DRUGS (Giữ nguyên gốc)
   // ==========================================
   async createDrug(data) {
     const sql = `INSERT INTO drugs (name, unit, price, description, content_html, content_markdown, is_deleted) VALUES (?, ?, ?, ?, ?, ?, 0)`;
@@ -273,7 +245,7 @@ class MasterDataRepo {
   }
 
   // ==========================================
-  // 6. ALLCODES
+  // 6. ALLCODES (Giữ nguyên gốc)
   // ==========================================
   async createAllCode(data) {
     const sql = `INSERT INTO allcodes (type, \`key\`, value_vi, value_en, is_deleted) VALUES (?, ?, ?, ?, 0)`;
@@ -289,10 +261,7 @@ class MasterDataRepo {
   async getAllCodes(type) {
     let sql = "SELECT * FROM allcodes WHERE is_deleted = 0";
     let params = [];
-    if (type && type !== "") {
-      sql += " AND type = ?";
-      params.push(type);
-    }
+    if (type && type !== "") { sql += " AND type = ?"; params.push(type); }
     const [rows] = await db.execute(sql, params);
     return { data: rows };
   }

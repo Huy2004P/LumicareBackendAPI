@@ -55,7 +55,17 @@ message SpecialtyListResponse { repeated SpecialtyResponse data = 1; int32 total
 
 message CreateClinicRequest { string name = 1; string address = 2; string description = 3; string image = 4; string type = 5; string content_html = 6; string content_markdown = 7; }
 message UpdateClinicRequest { int32 id = 1; string name = 2; string address = 3; string description = 4; string image = 5; string type = 6; string content_html = 7; string content_markdown = 8; }
-message ClinicResponse { int32 id = 1; string name = 2; string address = 3; string description = 4; string image = 5; string type = 6; string content_html = 7; string content_markdown = 8; }
+message ClinicResponse { 
+    int32 id = 1; 
+    string name = 2; 
+    string address = 3; 
+    string description = 4; 
+    string image = 5; 
+    string type = 6; 
+    string content_html = 7; 
+    string content_markdown = 8; 
+    double rating = 9;
+}
 message ClinicListResponse { repeated ClinicResponse data = 1; int32 total_count = 2; }
 
 message CreateRoomRequest { string name = 1; int32 clinicId = 2; string location = 3; string description = 4; }
@@ -66,7 +76,17 @@ message RoomListResponse { repeated RoomResponse data = 1; }
 
 message CreateServiceRequest { string name = 1; double price = 2; int32 specialty_id = 3; string description = 4; string image = 5; string content_html = 6; string content_markdown = 7; }
 message UpdateServiceRequest { int32 id = 1; string name = 2; double price = 3; int32 specialty_id = 4; string description = 5; string image = 6; string content_html = 7; string content_markdown = 8; }
-message ServiceResponse { int32 id = 1; string name = 2; double price = 3; int32 specialty_id = 4; string description = 5; string image = 6; string content_html = 7; string content_markdown = 8; }
+message ServiceResponse { 
+    int32 id = 1; 
+    string name = 2; 
+    double price = 3; 
+    int32 specialty_id = 4; 
+    string description = 5; 
+    string image = 6; 
+    string content_html = 7; 
+    string content_markdown = 8; 
+    double rating = 9;
+}
 message ServiceListResponse { repeated ServiceResponse data = 1; int32 total_count = 2; }
 
 // --- Định nghĩa cho Doctor By Service ---
@@ -81,6 +101,7 @@ message DoctorInfo {
     int32 specialty_id = 8;
     int32 room_id = 9;
     string specialty_name = 10;
+    double rating = 11;
 }
 message DoctorListByServiceResponse { bool success = 1; repeated DoctorInfo data = 2; }
 

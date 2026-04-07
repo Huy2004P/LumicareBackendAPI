@@ -109,6 +109,53 @@ class UserRepository {
   async clearOTP(email) {
     return db.execute("UPDATE users SET otp_code = NULL, otp_expired_at = NULL WHERE email = ?", [email]);
   }
+
+  // 3. Lấy tất cả user kèm tên từ profile (Doctor/Patient/Admin)
+  async findAll(searchTerm = "", role = "") {
+    let params = [];
+    let sql = `
+      SELECT u.id, u.email, u.role, u.active, u.created_at as createdAt,
+             COALESCE(p.full_name, d.full_name, a.full_name) as fullName
+      FROM users u
+      LEFT JOIN patients p ON u.id = p.user_id
+      LEFT JOIN doctors d ON u.id = d.user_id
+      LEFT JOIN admin_profiles a ON u.id = a.user_id
+      WHERE u.is_deleted = 0
+    `;
+
+    if (searchTerm) {
+      sql += ` AND (u.email LIKE ? OR p.full_name LIKE ? OR d.full_name LIKE ?)`;
+      const wrap = `%${searchTerm}%`;
+      params.push(wrap, wrap, wrap);
+    }
+
+    if (role) {
+      sql += ` AND u.role = ?`;
+      params.push(role);
+    }
+
+    sql += " ORDER BY u.id DESC";
+    const [rows] = await db.execute(sql, params);
+    return rows;
+  }
+
+  // 4. Đảo ngược trạng thái Active (Ban/Unban)
+  async toggleStatus(userId) {
+    const [result] = await db.execute(
+      "UPDATE users SET active = NOT active, updated_at = NOW() WHERE id = ?", 
+      [userId]
+    );
+    return result.affectedRows > 0;
+  }
+
+  // 5. Xóa mềm (Soft Delete)
+  async softDelete(userId) {
+    const [result] = await db.execute(
+      "UPDATE users SET is_deleted = 1, updated_at = NOW() WHERE id = ?", 
+      [userId]
+    );
+    return result.affectedRows > 0;
+  }
 }
 
 module.exports = new UserRepository();
