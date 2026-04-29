@@ -68,5 +68,3 @@ Mọi đóng góp hoặc thắc mắc vui lòng liên hệ nhóm phát triển.
 ## Liên hệ & đóng góp
 - Vui lòng liên hệ nhóm phát triển để biết thêm chi tiết hoặc đóng góp mã nguồn.
 
----
-*File này được tạo tự động bởi AI dựa trên source code thực tế.*
