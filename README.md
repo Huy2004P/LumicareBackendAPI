@@ -1,63 +1,66 @@
 # LumicareAPI Backend
 
-## Giới thiệu
-
-Đây là dự án backend cho hệ thống Lumicare, cung cấp các API và dịch vụ gRPC phục vụ ứng dụng quản lý đặt lịch, khám bệnh, thông báo, và nhiều chức năng khác cho phòng khám hoặc bệnh viện.
+## Tổng quan
+LumicareAPI là hệ thống backend phục vụ cho ứng dụng quản lý phòng khám/bệnh viện, hỗ trợ đặt lịch khám, quản lý người dùng, thông báo real-time, và nhiều chức năng khác.
 
 ## Công nghệ sử dụng
 - Node.js (Express)
 - gRPC
-- MySQL (qua Sequelize, mysql2)
+- MySQL (Sequelize, mysql2)
 - Redis
 - Socket.io
 - OneSignal (Push Notification)
 - JWT (Xác thực)
 - Nodemailer (Gửi email)
 
-## Cấu trúc thư mục
-
+## Cấu trúc thư mục chính
 ```
 ├── package.json
 ├── run.bat
 ├── test_noti.js
 ├── middlewares/
-│   └── authMiddleware.js
 ├── src/
-│   ├── server.js                # Khởi động server, socket, gRPC
-│   ├── config/                  # Cấu hình DB, Redis
-│   ├── handlers/                # Xử lý các request gRPC
-│   ├── interceptors/            # Interceptor cho gRPC (auth...)
-│   ├── protos/                  # Định nghĩa các proto file cho gRPC
-│   ├── repositories/            # Tầng truy xuất dữ liệu
-│   ├── services/                # Xử lý logic nghiệp vụ
-│   └── utils/                   # Tiện ích chung (jwt, mail, hash...)
+│   ├── server.js
+│   ├── config/
+│   ├── handlers/
+│   ├── interceptors/
+│   ├── protos/
+│   ├── repositories/
+│   ├── services/
+│   └── utils/
 ```
 
 ## Hướng dẫn cài đặt
-
-1. **Cài đặt Node.js** (>= 16)
-2. **Cài đặt MySQL** và tạo database, cấu hình biến môi trường `.env`:
+1. Cài Node.js >= 16, MySQL, Redis.
+2. Tạo file `.env` với các biến cấu hình:
    - DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
    - JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRE, JWT_REFRESH_EXPIRE
    - ONESIGNAL_APP_ID, ONESIGNAL_REST_API_KEY
-   - Các biến khác nếu cần
-3. **Cài đặt Redis**
-4. **Cài đặt package**:
+3. Cài đặt package:
    ```bash
    npm install
    ```
-5. **Chạy server**:
-   - Chạy bằng script:
-     ```bash
-     run.bat
-     ```
-   - Hoặc:
-     ```bash
-     npm start
-     ```
+4. Khởi động server:
+   ```bash
+   npm start
+   ```
+   hoặc chạy file `run.bat`.
 
-## Các chức năng chính
-- **Xác thực & Quản lý người dùng**: Đăng ký, đăng nhập, quên mật khẩu, xác thực OTP, JWT, phân quyền.
+## Chức năng nổi bật
+- Đăng ký, đăng nhập, xác thực OTP, JWT, phân quyền.
+- Đặt lịch, xác nhận, hoàn tất, hủy lịch khám.
+- Thông báo real-time qua OneSignal, Redis, Socket.io, gRPC stream.
+- Quản lý hồ sơ bệnh nhân, bác sĩ, thống kê, phản hồi.
+- Gửi email tự động (OTP, xác nhận, thông báo).
+
+## Kiểm tra hệ thống thông báo
+- Sử dụng file `test_noti.js` để test gửi notification (sửa ID user trong file).
+
+## Đóng góp
+Mọi đóng góp hoặc thắc mắc vui lòng liên hệ nhóm phát triển.
+
+---
+*README này được tạo tự động bởi AI dựa trên mã nguồn thực tế.*
 - **Đặt lịch & Quản lý lịch khám**: Đặt lịch, xác nhận, hoàn tất, hủy lịch, lấy danh sách lịch khám.
 - **Thông báo real-time**: Gửi thông báo qua OneSignal, Redis, Socket.io, gRPC stream.
 - **Quản lý hồ sơ bệnh nhân, bác sĩ, thống kê, phản hồi, v.v.**
