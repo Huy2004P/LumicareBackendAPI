@@ -11,17 +11,9 @@ const safeCall = async (callback, func) => {
   }
 };
 
-// 🎯 ĐẶT TÊN HÀM VIẾT HOA CHỮ ĐẦU CHO KHỚP VỚI PROTO
+// Hàm xử lý lấy hướng dẫn thanh toán (QR code hoặc thông tin chuyển khoản)
 const GetPaymentInstruction = async (call, callback) => {
   const { bookingId, paymentMethod, totalPrice } = call.request;
-
-  console.log("=======================================");
-  console.log("🚀 [BACKEND] NHẬN REQUEST LẤY QR");
-  console.log(`   - ID: ${bookingId}`);
-  console.log(`   - Method: ${paymentMethod}`);
-  console.log(`   - Price: ${totalPrice}`);
-  console.log("=======================================");
-
   await safeCall(callback, async () => {
     return await paymentService.getPaymentInstruction({
       bookingId,
@@ -31,24 +23,30 @@ const GetPaymentInstruction = async (call, callback) => {
   });
 };
 
+// Hàm xử lý xác nhận đã chuyển khoản từ phía bệnh nhân
 const PatientConfirmTransfer = async (call, callback) => {
   const { bookingId, transactionId } = call.request;
   await safeCall(callback, () => paymentService.patientConfirmTransfer(bookingId, transactionId));
 };
 
+
+// Hàm xử lý xác nhận thanh toán từ phía admin
 const AdminVerifyPayment = async (call, callback) => {
   await safeCall(callback, () => paymentService.adminVerifyPayment(call.request.bookingId));
 };
 
+
+// Hàm xử lý lấy trạng thái thanh toán
 const GetPaymentStatus = async (call, callback) => {
   await safeCall(callback, () => paymentService.getPaymentStatus(call.request.bookingId));
 };
 
+// Hàm xử lý lấy danh sách thanh toán (dành cho admin)
 const GetPaymentList = async (call, callback) => {
   await safeCall(callback, () => paymentService.getPaymentList(call.request));
 };
 
-// 🎯 EXPORT PHẢI VIẾT HOA CHỮ ĐẦU ĐỂ KHỚP VỚI SERVER.JS
+// Export các hàm xử lý để sử dụng trong server
 module.exports = {
   GetPaymentInstruction,
   PatientConfirmTransfer,

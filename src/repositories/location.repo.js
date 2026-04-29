@@ -1,11 +1,12 @@
 const db = require('../config/database');
 
 class LocationRepository {
+    // Lấy patient_id từ user_id để tạo location mới
     async getPatientIdByUserId(userId) {
         const [rows] = await db.execute("SELECT id FROM patients WHERE user_id = ? LIMIT 1", [userId]);
         return rows.length > 0 ? rows[0].id : null;
     }
-
+    // Tạo location mới cho patient
     async create(data) {
         const query = `
             INSERT INTO locations 
@@ -16,13 +17,13 @@ class LocationRepository {
         const [result] = await db.execute(query, values);
         return result.insertId;
     }
-
+    // Lấy tất cả địa chỉ của patient, ưu tiên địa chỉ mặc định lên đầu
     async getAllByPatientId(patientId) {
         const query = "SELECT * FROM locations WHERE patient_id = ? ORDER BY is_default DESC, created_at DESC";
         const [rows] = await db.execute(query, [patientId]);
         return rows;
     }
-
+    // Xoa địa chỉ theo id
     async delete(id) {
         const [result] = await db.execute("DELETE FROM locations WHERE id = ?", [id]);
         return result.affectedRows > 0;
@@ -33,12 +34,9 @@ class LocationRepository {
         // 1. Tìm patient_id của cái location này trước
         const [loc] = await db.execute("SELECT patient_id FROM locations WHERE id = ?", [locationId]);
         if (loc.length === 0) return false;
-        
         const patientId = loc[0].patient_id;
-
         // 2. Reset tất cả địa chỉ của patient này về 0
         await db.execute("UPDATE locations SET is_default = 0 WHERE patient_id = ?", [patientId]);
-
         // 3. Set cái được chọn lên 1
         const [result] = await db.execute("UPDATE locations SET is_default = 1 WHERE id = ?", [locationId]);
         return result.affectedRows > 0;

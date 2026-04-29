@@ -1,6 +1,7 @@
 const locationService = require('../services/location.service');
 
 const locationHandler = {
+    //Thêm địa chỉ mới
     addNewLocation: async (call, callback) => {
         try {
             const req = call.request;
@@ -19,7 +20,7 @@ const locationHandler = {
             callback(null, { success: true, message: "OK", location_id: result.location_id });
         } catch (e) { callback({ code: 13, message: e.message }); }
     },
-
+    //Lấy danh sách địa chỉ
     getPatientLocations: async (call, callback) => {
         try {
             const userId = call.request.user_id || call.request.userId;
@@ -32,7 +33,7 @@ const locationHandler = {
             callback(null, { locations: formatted });
         } catch (e) { callback({ code: 13, message: e.message }); }
     },
-
+    // Xoá địa chỉ
     removeLocation: async (call, callback) => {
         try {
             await locationService.removeLocation(call.request.location_id || call.request.locationId);
@@ -40,7 +41,7 @@ const locationHandler = {
         } catch (e) { callback({ code: 13, message: e.message }); }
     },
 
-    // MỚI: Xử lý Set Default
+    // đặt địa chỉ làm mặc định
     setDefaultLocation: async (call, callback) => {
         try {
             const locId = call.request.location_id || call.request.locationId;

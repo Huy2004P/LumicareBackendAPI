@@ -1,25 +1,26 @@
 const feedbackRepo = require("../repositories/feedback.repo");
 
 class FeedbackService {
+  // Gửi phản hồi của bệnh nhân về bác sĩ, phòng khám, dịch vụ hoặc đặt lịch
   async sendFeedback(data) {
     return await feedbackRepo.create(data);
   }
-
+  // Lấy phản hồi của bệnh nhân về bác sĩ, phòng khám, dịch vụ hoặc đặt lịch
   async getDoctorFeedbacks(id) {
     const data = await feedbackRepo.getByTarget('doctor_id', id);
     return this._formatResponse(data, 'rating_doctor');
   }
-
+  // Lấy phản hồi của bệnh nhân về phòng khám
   async getClinicFeedbacks(id) {
     const data = await feedbackRepo.getByTarget('clinic_id', id);
     return this._formatResponse(data, 'rating_clinic');
   }
-
+  // Lấy phản hồi của bệnh nhân về dịch vụ
   async getServiceFeedbacks(id) {
     const data = await feedbackRepo.getByTarget('service_id', id);
     return this._formatResponse(data, 'rating_service');
   }
-
+  // Điều chỉnh phản hồi của bệnh nhân về bác sĩ, phòng khám, dịch vụ hoặc đặt lịch
   _formatResponse(rows, ratingCol) {
     const count = rows.length;
     const avg = count > 0 ? (rows.reduce((s, i) => s + i[ratingCol], 0) / count).toFixed(1) : 5.0;
@@ -39,7 +40,7 @@ class FeedbackService {
       avg_rating: parseFloat(avg)
     };
   }
-
+  // Lấy tất cả phản hồi (dành cho admin)
   async getAllFeedbacks() {
     const rows = await feedbackRepo.getAll();
     return { success: true, data: rows };

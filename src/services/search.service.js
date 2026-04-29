@@ -1,10 +1,9 @@
 const searchRepo = require("../repositories/search.repo");
 
 class SearchService {
+  // Tìm kiếm toàn cục trên nhiều loại dữ liệu (bài viết, sản phẩm, người dùng, v.v.)
   async globalSearch(query, limit) {
-    // Ông có thể thêm logic xử lý chuỗi ở đây nếu cần
-    const results = await searchRepo.globalSearch(query, limit || 15);
-    
+    const results = await searchRepo.globalSearch(query, limit || 15);    
     return results.map(item => ({
       id: String(item.id),
       type: item.type,
@@ -14,10 +13,9 @@ class SearchService {
       image: item.image ? item.image : "" 
     }));
   }
-
+  // Lấy gợi ý tìm kiếm dựa trên từ khóa đã nhập
   async getSuggestions(query, limit) {
     const keywords = await searchRepo.getSuggestions(query, limit || 10);
-    // Ở đây ông có thể thêm logic lọc trùng hoặc sắp xếp alphabet nếu thích
     return keywords;
   }
 }

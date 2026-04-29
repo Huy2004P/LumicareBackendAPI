@@ -1,11 +1,8 @@
 const authService = require("../services/auth.service");
 
-/**
- * Helper bọc lỗi chuẩn cho gRPC
- */
+//hàm bọc lỗi
 const safeCall = async (callback, func) => {
   try {
-    // 🚀 QUAN TRỌNG: Phải await func() để lấy kết quả thực tế
     const result = await func(); 
     callback(null, result);
   } catch (error) {

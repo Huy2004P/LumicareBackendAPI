@@ -2,6 +2,7 @@ const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const path = require("path");
 
+// Hàm load proto file
 const loadProto = (filename) => {
   const packageDefinition = protoLoader.loadSync(
     path.join(__dirname, "../protos", filename),
@@ -16,7 +17,7 @@ const loadProto = (filename) => {
   return grpc.loadPackageDefinition(packageDefinition);
 };
 
-// Gom tất cả service vào đây
+// Hàm đăng ký services vào server
 const registerServices = (server, handlers, interceptor) => {
   const services = [
     { proto: "auth.proto", pkg: "auth", service: "AuthService", handler: handlers.auth },
@@ -31,16 +32,12 @@ const registerServices = (server, handlers, interceptor) => {
     { proto: "statistic.proto", pkg: "statistic", service: "StatisticService", handler: handlers.statistic },
     { proto: "feedback.proto", pkg: "feedback", service: "FeedbackService", handler: handlers.feedback },
   ];
-
   services.forEach((s) => {
     const protoPkg = loadProto(s.proto)[s.pkg];
     const implementation = {};
-
-    // Tự động bọc interceptor nếu là service private
     Object.keys(s.handler).forEach((method) => {
       implementation[method] = s.private ? interceptor(s.handler[method]) : s.handler[method];
     });
-
     server.addService(protoPkg[s.service].service, implementation);
   });
 };

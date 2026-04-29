@@ -1,63 +1,73 @@
-# BookingCare - Hệ thống Quản lý Đặt lịch Khám bệnh (Backend gRPC)
+# LumicareAPI Backend
 
-Dự án Backend cho hệ thống BookingCare, được xây dựng trên nền tảng Node.js và giao thức truyền tải dữ liệu gRPC. Hệ thống tập trung vào việc tối ưu hóa hiệu suất đặt lịch và quản lý dữ liệu y tế quy mô lớn.
+## Giới thiệu
 
-## Thông tin Tác giả
-* **Họ và tên:** Văn Bá Phát Huy
-* **Vai trò:** Sinh viên thực hiện
-* **Giai đoạn:** Tuần 4 - Hoàn thiện các Module nâng cao (Statistic, Feedback, Notification)
+Đây là dự án backend cho hệ thống Lumicare, cung cấp các API và dịch vụ gRPC phục vụ ứng dụng quản lý đặt lịch, khám bệnh, thông báo, và nhiều chức năng khác cho phòng khám hoặc bệnh viện.
 
----
+## Công nghệ sử dụng
+- Node.js (Express)
+- gRPC
+- MySQL (qua Sequelize, mysql2)
+- Redis
+- Socket.io
+- OneSignal (Push Notification)
+- JWT (Xác thực)
+- Nodemailer (Gửi email)
 
-## Các tính năng chính (Cập nhật Tuần 4)
-
-### 1. Hệ thống Thống kê và Dashboard (Statistic Service)
-Cung cấp các chỉ số phân tích dữ liệu thực tế thông qua các truy vấn SQL tối ưu:
-* **Admin Dashboard:**
-    * Thống kê tổng doanh thu, tổng số lượng bác sĩ và bệnh nhân trên toàn hệ thống.
-    * Tính toán tỷ lệ tăng trưởng doanh thu theo tháng.
-    * Danh sách Top 3 Bác sĩ có hiệu suất cao nhất và các dịch vụ y tế phổ biến nhất.
-    * Dữ liệu biểu đồ doanh thu định dạng theo tháng.
-* **Doctor Dashboard:**
-    * Theo dõi số lượng bệnh nhân thực tế trong ngày.
-    * Phân loại trạng thái lịch hẹn: Chờ khám, Hoàn thành, Đã hủy.
-    * Thống kê điểm đánh giá trung bình (Average Rating) và doanh thu tuần.
-    * Lịch sử 5 ca khám gần nhất kèm thông tin chi tiết bệnh nhân.
-
-### 2. Module Đánh giá và Phản hồi (Feedback Service)
-* Cho phép bệnh nhân gửi đánh giá định lượng (1-5 sao) và định tính (nhận xét) sau ca khám.
-* Tự động tính toán điểm uy tín cho bác sĩ dựa trên hàm AVG trong cơ sở dữ liệu.
-* Ràng buộc Unique Key đảm bảo mỗi ca khám (booking_id) chỉ được đánh giá một lần duy nhất.
-
-### 3. Hệ thống Thông báo (Notification Service)
-* Gửi thông báo thời gian thực khi có sự thay đổi về trạng thái lịch hẹn (Xác nhận/Hoàn thành).
-* API hỗ trợ đánh dấu thông báo đã đọc (Mark as read) và lấy danh sách thông báo cá nhân.
-
----
-
-## Công nghệ và Kỹ thuật sử dụng
-* **Ngôn ngữ:** [Node.js](https://nodejs.org/) (JavaScript)
-* **Giao thức:** [gRPC](https://grpc.io/) - Sử dụng HTTP/2 để tối ưu hóa băng thông.
-* **Cơ sở dữ liệu:** [MySQL](https://www.mysql.com/) (Sử dụng JOIN, Subqueries và Aggregate Functions).
-* **Quản lý mã nguồn:** Git (Phân nhánh theo tuần: `tuan-4`).
-
----
-
-## Cấu trúc thư mục dự án
-```text
-src/
-├── protos/            # Định nghĩa Interface Definition Language (.proto)
-│   ├── appointment.proto
-│   ├── feedback.proto
-│   ├── statistic.proto
-│   └── ....
-├── repositories/      # Tầng truy xuất dữ liệu (Data Access Layer)
-│   ├── appointment.repo.js
-│   ├── feedback.repo.js
-│   ├── statistic.repo.js
-│   └── ....
-├── services/          # Tầng xử lý logic nghiệp vụ (Business Logic Layer)
-├── handlers/          # Tầng tiếp nhận request từ gRPC (Presentation Layer)
-└── server.js          # Điểm khởi chạy hệ thống (Entry Point)
+## Cấu trúc thư mục
 
 ```
+├── package.json
+├── run.bat
+├── test_noti.js
+├── middlewares/
+│   └── authMiddleware.js
+├── src/
+│   ├── server.js                # Khởi động server, socket, gRPC
+│   ├── config/                  # Cấu hình DB, Redis
+│   ├── handlers/                # Xử lý các request gRPC
+│   ├── interceptors/            # Interceptor cho gRPC (auth...)
+│   ├── protos/                  # Định nghĩa các proto file cho gRPC
+│   ├── repositories/            # Tầng truy xuất dữ liệu
+│   ├── services/                # Xử lý logic nghiệp vụ
+│   └── utils/                   # Tiện ích chung (jwt, mail, hash...)
+```
+
+## Hướng dẫn cài đặt
+
+1. **Cài đặt Node.js** (>= 16)
+2. **Cài đặt MySQL** và tạo database, cấu hình biến môi trường `.env`:
+   - DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
+   - JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRE, JWT_REFRESH_EXPIRE
+   - ONESIGNAL_APP_ID, ONESIGNAL_REST_API_KEY
+   - Các biến khác nếu cần
+3. **Cài đặt Redis**
+4. **Cài đặt package**:
+   ```bash
+   npm install
+   ```
+5. **Chạy server**:
+   - Chạy bằng script:
+     ```bash
+     run.bat
+     ```
+   - Hoặc:
+     ```bash
+     npm start
+     ```
+
+## Các chức năng chính
+- **Xác thực & Quản lý người dùng**: Đăng ký, đăng nhập, quên mật khẩu, xác thực OTP, JWT, phân quyền.
+- **Đặt lịch & Quản lý lịch khám**: Đặt lịch, xác nhận, hoàn tất, hủy lịch, lấy danh sách lịch khám.
+- **Thông báo real-time**: Gửi thông báo qua OneSignal, Redis, Socket.io, gRPC stream.
+- **Quản lý hồ sơ bệnh nhân, bác sĩ, thống kê, phản hồi, v.v.**
+- **Gửi email tự động**: Thông báo, OTP, xác nhận tài khoản.
+
+## Test hệ thống thông báo
+- Sử dụng file `test_noti.js` để kiểm tra gửi notification tới user (cần sửa ID user trong file).
+
+## Liên hệ & đóng góp
+- Vui lòng liên hệ nhóm phát triển để biết thêm chi tiết hoặc đóng góp mã nguồn.
+
+---
+*File này được tạo tự động bởi AI dựa trên source code thực tế.*

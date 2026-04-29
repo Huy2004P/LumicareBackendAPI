@@ -11,6 +11,37 @@ service AppointmentService {
   
   // 3. Bác sĩ hoàn tất khám (Ghi bệnh án + Kê đơn) - Sẽ làm ở bước sau
   rpc FinishAppointment (FinishAppointmentRequest) returns (FinishResponse);
+
+  rpc GetMedicalHistory (GetMedicalHistoryRequest) returns (MedicalHistoryResponse);
+}
+
+// --- Request cho việc lấy lịch sử ---
+message GetMedicalHistoryRequest {
+  int32 patient_id = 1; // Nếu truyền > 0: Lấy lịch sử của 1 bệnh nhân cụ thể
+  int32 doctor_id = 2;  // Nếu truyền > 0: Lấy lịch sử các ca bác sĩ đó đã khám
+  string keyword = 3;   // Tìm kiếm theo chẩn đoán hoặc tên bệnh nhân
+}
+
+// --- Cấu trúc một bản ghi bệnh án hoàn chỉnh để hiển thị ---
+message MedicalRecordItem {
+  int32 record_id = 1;
+  int32 booking_id = 2;
+  int32 patient_id = 3;
+  string patient_name = 4;
+  string doctor_name = 5;
+  string date = 6;            // Ngày khám (YYYY-MM-DD)
+  string symptoms = 7;        // Triệu chứng
+  string diagnosis = 8;       // Chẩn đoán
+  string treatment_plan = 9;  // Lời dặn/Kế hoạch điều trị
+  repeated MedicineItem medicines = 10; // Danh sách thuốc đã kê
+  repeated TreatmentItem treatments = 11; // Các liệu trình đã làm
+  string re_exam_date = 12;   // Ngày hẹn tái khám
+}
+
+message MedicalHistoryResponse {
+  bool success = 1;
+  string message = 2;
+  repeated MedicalRecordItem data = 3;
 }
 
 message GetListPatientRequest {
@@ -30,6 +61,7 @@ message PatientBookingItem {
   string gender = 9;
   string birthday = 10;
   string address = 11;
+  string service_name = 12;
 }
 
 message ListPatientResponse {
@@ -51,8 +83,9 @@ message VerifyResponse {
 
 message MedicineItem {
   int32 drug_id = 1;
-  int32 quantity = 2;
-  string instruction = 3;
+  string drug_name = 2;
+  int32 quantity = 3;
+  string instruction = 4;
 }
 
 message FinishAppointmentRequest {

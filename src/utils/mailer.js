@@ -3,8 +3,8 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "phathuy2004h@gmail.com",
-    pass: "tbde igub dxap nvhc", 
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -14,64 +14,152 @@ const transporter = nodemailer.createTransport({
  * @param {string} message - Nội dung chi tiết
  * @param {string} badge - Mã OTP hoặc Trạng thái nổi bật
  */
-const renderGradientTemplate = (title, message, badge) => {
-  const mainColor = "#0D47A1"; // Xanh đậm
-  const gradient = "linear-gradient(135deg, #0D47A1 0%, #1976D2 100%)";
-
+const renderAppleTemplate = (title, message, badge) => {
   return `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-      <div style="background: ${gradient}; padding: 35px 20px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 30px; letter-spacing: 2px; text-transform: uppercase; font-weight: bold;">BookingCare</h1>
+  <div style="
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background:#f5f5f7;
+    padding:40px 16px;
+  ">
+
+    <div style="
+      max-width:520px;
+      margin:0 auto;
+      background:#ffffff;
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid #e0e0e0;
+    ">
+
+      <!-- HEADER -->
+      <div style="
+        background:#000;
+        padding:14px 20px;
+        text-align:center;
+      ">
+        <span style="
+          color:#fff;
+          font-size:14px;
+          letter-spacing:0.5px;
+          font-weight:600;
+        ">
+          Lumicare
+        </span>
       </div>
-      
-      <div style="padding: 40px 30px; background-color: white; text-align: center;">
-        <h2 style="color: #333; margin-top: 0; font-size: 22px;">${title}</h2>
-        <p style="color: #666; line-height: 1.6; font-size: 16px; margin-bottom: 25px;">${message}</p>
-        
-        ${badge ? `
-          <div style="margin: 30px 0;">
-            <div style="display: inline-block; background: #f8f9fa; padding: 15px 45px; border-radius: 10px; border: 2px dashed ${mainColor};">
-              <span style="font-size: 34px; font-weight: bold; color: ${mainColor}; letter-spacing: 6px;">${badge}</span>
-            </div>
+
+      <!-- CONTENT -->
+      <div style="
+        padding:48px 32px;
+        text-align:center;
+      ">
+
+        <div style="
+          font-size:28px;
+          font-weight:600;
+          color:#1d1d1f;
+          letter-spacing:-0.3px;
+          margin-bottom:12px;
+        ">
+          ${title}
+        </div>
+
+        <div style="
+          font-size:17px;
+          line-height:1.5;
+          color:#1d1d1f;
+          font-weight:400;
+          margin-bottom:28px;
+        ">
+          ${message}
+        </div>
+
+        ${
+          badge
+            ? `
+          <div style="margin:28px 0;">
+            <span style="
+              display:inline-block;
+              padding:12px 22px;
+              border-radius:999px;
+              background:#0066cc;
+              color:#fff;
+              font-size:17px;
+              font-weight:500;
+              letter-spacing:2px;
+            ">
+              ${badge}
+            </span>
           </div>
-        ` : ""}
-        
-        <p style="color: #999; font-size: 13px; margin-top: 30px;">
-          Đây là email bảo mật từ hệ thống. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua thư này.
-        </p>
+        `
+            : ""
+        }
+
+        <a href="#" style="
+          display:inline-block;
+          margin-top:10px;
+          padding:12px 22px;
+          border-radius:999px;
+          background:#0066cc;
+          color:#fff;
+          text-decoration:none;
+          font-size:14px;
+          font-weight:500;
+        ">
+          Tiếp tục
+        </a>
+
+        <div style="
+          margin-top:32px;
+          font-size:12px;
+          color:#6e6e73;
+          line-height:1.4;
+        ">
+          Email này được gửi tự động từ hệ thống Lumicare. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.
+        </div>
+
       </div>
-      
-      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-        <p style="color: #888; font-size: 12px; margin: 0; font-weight: bold;">© 2024 BookingCare System - Phát Huy AGU</p>
+
+      <div style="
+        background:#f5f5f7;
+        padding:16px;
+        text-align:center;
+        font-size:11px;
+        color:#86868b;
+      ">
+        © Lumicare System
       </div>
+
     </div>
+  </div>
   `;
 };
 
 // 1. Hàm cũ: Đăng ký thành công
 const sendWelcomeEmail = async (toEmail, fullName) => {
-  const title = "Chào mừng thành viên mới!";
-  const message = `Chào <b>${fullName}</b>, chúc mừng bạn đã gia nhập hệ thống đặt lịch khám <b>BookingCare</b>. Hãy bắt đầu chăm sóc sức khỏe của mình ngay hôm nay!`;
-  const html = renderGradientTemplate(title, message, "✓ XÁC NHẬN");
+  const title = "Chào mừng bạn đến với Lumicare";
+  const message = `Chào <b>${fullName}</b>, bạn đã đăng ký thành công hệ thống Lumicare. Hãy bắt đầu hành trình chăm sóc sức khỏe của bạn ngay hôm nay!`;
+
+  const html = renderAppleTemplate(title, message, "✓ VERIFIED");
 
   return transporter.sendMail({
-    from: '"BookingCare" <phathuy2004h@gmail.com>',
+    from: '"Lumicare" <lumicare.cskh@gmail.com>',
     to: toEmail,
-    subject: "Đăng ký thành công",
+    subject: "Đăng ký thành công - Lumicare",
     html
   });
 };
 
 // 2. Hàm cũ: OTP Quên mật khẩu
 const sendOTPEmail = async (toEmail, otpCode) => {
-  const title = "Khôi phục mật khẩu";
-  const message = "Bạn vừa gửi yêu cầu khôi phục mật khẩu. Vui lòng nhập mã OTP dưới đây để tiếp tục. Mã có hiệu lực trong 5 phút.";
-  const html = renderGradientTemplate(title, message, otpCode);
+  const title = "Khôi phục mật khẩu Lumicare";
+  const message = "Nhập mã OTP bên dưới để tiếp tục quá trình khôi phục mật khẩu. Mã có hiệu lực trong 5 phút.";
+
+  const html = renderAppleTemplate(title, message, otpCode);
 
   return transporter.sendMail({
-    from: '"BookingCare Support" <phathuy2004h@gmail.com>',
+    from: '"Lumicare Support" <lumicare.cskh@gmail.com>',
     to: toEmail,
-    subject: `[${otpCode}] Mã xác thực khôi phục`,
+    subject: `[${otpCode}] Mã xác thực Lumicare`,
     html
   });
 };
@@ -79,27 +167,29 @@ const sendOTPEmail = async (toEmail, otpCode) => {
 // 3. Hàm mới: OTP Đổi mật khẩu trong App
 const sendOTPChangePassword = async (toEmail, otpCode) => {
   const title = "Xác nhận đổi mật khẩu";
-  const message = "Để đảm bảo an toàn, vui lòng nhập mã OTP dưới đây để xác nhận việc thay đổi mật khẩu của bạn.";
-  const html = renderGradientTemplate(title, message, otpCode);
+  const message = "Để đảm bảo an toàn tài khoản Lumicare, vui lòng nhập mã OTP để xác nhận thay đổi mật khẩu.";
+
+  const html = renderAppleTemplate(title, message, otpCode);
 
   return transporter.sendMail({
-    from: '"BookingCare Security" <phathuy2004h@gmail.com>',
+    from: '"Lumicare Security" <lumicare.cskh@gmail.com>',
     to: toEmail,
-    subject: `[${otpCode}] Xác nhận đổi mật khẩu`,
+    subject: `[${otpCode}] Xác nhận bảo mật Lumicare`,
     html
   });
 };
 
 // 4. Hàm mới: Thông báo thành công
 const sendChangePasswordNotification = async (toEmail, fullName) => {
-  const title = "Đổi mật khẩu thành công";
-  const message = `Chào <b>${fullName}</b>, mật khẩu tài khoản của bạn đã được thay đổi thành công vào lúc ${new Date().toLocaleString('vi-VN')}.`;
-  const html = renderGradientTemplate(title, message, "● THÀNH CÔNG");
+  const title = "Mật khẩu đã được thay đổi";
+  const message = `Chào <b>${fullName}</b>, mật khẩu tài khoản Lumicare của bạn vừa được thay đổi thành công. Nếu không phải bạn thực hiện, hãy liên hệ ngay hỗ trợ.`;
+
+  const html = renderAppleTemplate(title, message, "SECURED");
 
   return transporter.sendMail({
-    from: '"BookingCare Security" <phathuy2004h@gmail.com>',
+    from: '"Lumicare Security" <lumicare.cskh@gmail.com>',
     to: toEmail,
-    subject: "Thông báo bảo mật",
+    subject: "Thông báo bảo mật - Lumicare",
     html
   });
 };

@@ -14,6 +14,14 @@ service DoctorService {
   rpc GlobalSearch (GlobalSearchRequest) returns (GlobalSearchResponse);
   rpc UpdateDoctor (UpdateDoctorRequest) returns (DoctorResponse);
   rpc DeleteDoctor (DoctorIdRequest) returns (StatusResponse);
+
+  rpc UpdateDoctorPassword (UpdatePasswordRequest) returns (StatusResponse);
+  rpc ResetDoctorPassword (DoctorIdRequest) returns (StatusResponse);
+}
+
+message UpdatePasswordRequest {
+  int32 id = 1;
+  string newPassword = 2;
 }
 
 message StatusResponse {
@@ -40,6 +48,7 @@ message DoctorResponse {
   bool active = 12;
   int32 specialtyId = 13;
   double rating = 14;
+  int32 roomId = 15;
 }
 
 message CreateDoctorRequest {

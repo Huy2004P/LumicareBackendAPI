@@ -10,7 +10,6 @@ class PatientRepository {
     );
     return result.insertId;
   }
-
   // 2. Tìm patient theo user_id (Dùng khi login để lấy Avatar/Tên)
   async findByUserId(userId) {
     const [rows] = await db.query("SELECT * FROM patients WHERE user_id = ?", [
@@ -18,7 +17,6 @@ class PatientRepository {
     ]);
     return rows[0];
   }
-
   // 3. Cập nhật thông tin cá nhân
   async update(userId, data) {
     const { full_name, phone, avatar } = data;

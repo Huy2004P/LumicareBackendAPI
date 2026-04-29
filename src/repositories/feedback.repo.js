@@ -1,6 +1,7 @@
 const db = require("../config/database");
 
 class FeedbackRepository {
+  // Tạo feedback mới
   async create(data) {
     const sql = `
       INSERT INTO feedbacks (
@@ -16,7 +17,7 @@ class FeedbackRepository {
     ]);
     return result.insertId;
   }
-
+  // Lấy feedback theo điều kiện (doctor_id, clinic_id, service_id)
   async getByTarget(columnName, targetId) {
     const sql = `
       SELECT f.*, p.full_name as patient_name, u.avatar as patient_avatar
@@ -29,7 +30,7 @@ class FeedbackRepository {
     const [rows] = await db.execute(sql, [targetId]);
     return rows;
   }
-
+  // Lấy tất cả feedback
   async getAll() {
     const sql = `
       SELECT f.*, p.full_name as patient_name, d.full_name as doctor_name

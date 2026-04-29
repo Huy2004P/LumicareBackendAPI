@@ -7,6 +7,7 @@ service UserService {
   rpc ToggleUserStatus (UserStatusRequest) returns (UserActionResponse);
   rpc ResetPassword (UserStatusRequest) returns (UserActionResponse);
   rpc DeleteUser (UserStatusRequest) returns (UserActionResponse);
+  rpc ChangePassword (ChangePasswordRequest) returns (UserActionResponse);
 }
 
 message UserResponse {
@@ -34,4 +35,11 @@ message UserStatusRequest {
 message UserActionResponse {
   bool success = 1;
   string message = 2;
+}
+
+message ChangePasswordRequest {
+  int32 userId = 1;
+  string oldPassword = 2;
+  string newPassword = 3;
+  string email = 4;
 }

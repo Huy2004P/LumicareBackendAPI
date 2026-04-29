@@ -13,7 +13,6 @@ const safeCall = async (callback, func) => {
 
 // Hàm map DB Object -> Proto Object (Quan trọng để khớp tên cột)
 const mapToProto = (p) => {
-  // Logic chuyển đổi giới tính từ ký tự sang chữ
   let displayGender = p.gender;
   if (p.gender === 'M') displayGender = 'Nam';
   else if (p.gender === 'F') displayGender = 'Nữ';
@@ -24,7 +23,7 @@ const mapToProto = (p) => {
     user_id: p.owner_patient_id, 
     full_name: p.full_name,
     birthday: p.birthday ? new Date(p.birthday).toISOString().split('T')[0] : "",
-    gender: displayGender, // Trả về "Nam" hoặc "Nữ" ở đây nè Huy!
+    gender: displayGender,
     phone_number: p.phone,
     address: p.address,
     relationship: p.relationship
@@ -32,16 +31,15 @@ const mapToProto = (p) => {
 };
 
 module.exports = {
-  // 1. Get List
+  // 1. Get List Profiles
   GetAllProfiles: (call, callback) => {
     safeCall(callback, async () => {
       const profiles = await service.getAllProfiles(call.request.user_id);
-      // Map mảng kết quả
       return { success: true, data: profiles.map(mapToProto) };
     });
   },
 
-  // 2. Create
+  // 2. Create Profile
   CreateProfile: (call, callback) => {
     safeCall(callback, async () => {
       const newProfile = await service.createProfile(call.request);
@@ -49,22 +47,15 @@ module.exports = {
     });
   },
 
-  // 3. Update
+  // 3. Update Profile
   UpdateProfile: (call, callback) => {
     safeCall(callback, async () => {
-      // 🕵️‍♂️ LOG ĐỂ ÔNG SOI BÊN FRONTEND GỬI GÌ XUỐNG NÈ
-      console.log("-----------------------------------------");
-      console.log("🚀 [DEBUG UPDATE] Dữ liệu từ Flutter:", JSON.stringify(call.request, null, 2));
-      console.log("-----------------------------------------");
-
       const updatedProfile = await service.updateProfile(call.request);
-      
-      // Trả về cho Flutter, nhớ truyền call.request.user_id vào mapToProto
       return mapToProto(updatedProfile, call.request.user_id);
     });
   },
 
-  // 4. Delete
+  // 4. Delete Profile
   DeleteProfile: (call, callback) => {
     safeCall(callback, async () => {
       await service.deleteProfile(call.request.id, call.request.user_id);
@@ -72,16 +63,11 @@ module.exports = {
     });
   },
 
-  // 5. Get One
+  // 5. Get Detail Profile
   GetProfileById: (call, callback) => {
     safeCall(callback, async () => {
-      // 🔍 DEBUG: Ông thêm dòng này để xem thực tế Node.js đang nhận tên trường là gì
-      console.log(">>> Dữ liệu Kreya gửi lên thực tế:", call.request);
-
-      // Thử đổi sang cách bóc tách an toàn cho cả 2 trường hợp (snake_case và camelCase)
       const id = call.request.id;
       const userId = call.request.user_id || call.request.userId; 
-
       const profile = await service.getProfileDetail(id, userId);
       return mapToProto(profile);
     });

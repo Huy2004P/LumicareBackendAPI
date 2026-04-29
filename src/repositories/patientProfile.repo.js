@@ -7,7 +7,7 @@ class PatientProfileRepository {
     const [rows] = await db.execute(sql, [userId]);
     return rows[0] ? rows[0].id : null;
   }
-
+  // Lấy tất cả profile của một bệnh nhân (chủ sở hữu)
   async getAllByOwnerId(ownerId) {
     const sql = `
         SELECT id, owner_patient_id, full_name, 
@@ -20,7 +20,6 @@ class PatientProfileRepository {
     const [rows] = await db.execute(sql, [ownerId]);
     return rows;
   }
-
   // Hàm gốc của ông
   async getByIdAndOwner(id, ownerId) {
     const sql = `
@@ -33,19 +32,18 @@ class PatientProfileRepository {
     const [rows] = await db.execute(sql, [id, ownerId]);
     return rows[0];
   }
-
-  // 🎯 THÊM ALIAS: Để Service gọi getById(id, ownerId) không bị crash
+  // Hàm mới, chỉ lấy profile nếu nó thuộc về chủ sở hữu và chưa bị xóa
   async getById(id, ownerId) {
     return this.getByIdAndOwner(id, ownerId);
   }
-
+  // Tạo profile mới, đảm bảo gắn đúng owner_patient_id
   async create(data) {
     const sql = `
       INSERT INTO patient_profiles (owner_patient_id, full_name, birthday, gender, phone, address, relationship, is_deleted, created_at, updated_at) 
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
     `;
     const [result] = await db.execute(sql, [
-      data.owner_patient_id, // Đã đổi tên cho đúng ý nghĩa
+      data.owner_patient_id,
       data.full_name,
       data.birthday,
       data.gender,
@@ -55,7 +53,7 @@ class PatientProfileRepository {
     ]);
     return result.insertId;
   }
-
+  // Cập nhật profile, chỉ cho phép cập nhật nếu profile thuộc về chủ sở hữu và chưa bị xóa
   async update(id, ownerId, data) {
     const sql = `
       UPDATE patient_profiles 
@@ -75,7 +73,7 @@ class PatientProfileRepository {
     const [result] = await db.execute(sql, params);
     return result.affectedRows > 0;
   }
-
+  // Xóa profile, thực chất là đánh dấu is_deleted = 1, chỉ cho phép xóa nếu profile thuộc về chủ sở hữu và chưa bị xóa
   async delete(id, ownerId) {
     const sql = `
       UPDATE patient_profiles 

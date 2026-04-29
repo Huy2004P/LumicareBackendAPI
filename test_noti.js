@@ -1,4 +1,4 @@
-require('dotenv').config(); // Nạp biến môi trường (OneSignal App ID, API Key...)
+require("dotenv").config({ quiet: true });
 const notificationService = require("./src/services/notification.service");
 
 async function runTest() {

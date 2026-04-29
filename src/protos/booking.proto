@@ -25,7 +25,7 @@ message CreateBookingRequest {
   repeated string photos = 7;
   int32 service_id = 8; 
   int32 location_id = 9; 
-  string payment_method = 10; // 🎯 THÊM: Để gửi PAY1, PAY2 lên BE
+  string payment_method = 10;
 }
 
 message GetHistoryRequest { int32 patient_id = 1; }
@@ -42,8 +42,12 @@ message BookingItem {
   double price = 9;        
   string address = 10; 
   string cancel_reason = 11;
-  string payment_method = 12; // 🎯 THÊM: Để hiện loại thanh toán trong lịch sử
-  int32 payment_status = 13;  // 🎯 THÊM: Để hiện trạng thái tiền (0, 1, 2)
+  string payment_method = 12; 
+  int32 payment_status = 13;
+  int32 doctor_id = 14;   
+  int32 patient_id = 15;  
+  int32 clinic_id = 16;   
+  int32 service_id = 17;  
 }
 
 message HistoryResponse {

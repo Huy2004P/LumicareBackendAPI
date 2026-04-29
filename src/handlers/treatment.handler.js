@@ -15,8 +15,8 @@ const TreatmentHandler = {
           symptoms: data.symptoms,
           treatment_plan: data.treatment_plan,
           re_exam_date: data.re_exam_date,
-          instructions: data.instructions || [], // Lời dặn (bảng treatments)
-          medicines: data.medicines || []       // THÊM DÒNG NÀY: Thuốc (bảng prescriptions)
+          instructions: data.instructions || [],
+          medicines: data.medicines || []
         }
       });
     } catch (e) {
@@ -29,7 +29,6 @@ const TreatmentHandler = {
     try {
       const { user_id } = call.request;
       const records = await treatmentService.getMedicalRecords(user_id);
-
       callback(null, {
         success: true,
         message: "Lấy danh sách hồ sơ khám thành công",

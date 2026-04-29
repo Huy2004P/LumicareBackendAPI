@@ -46,7 +46,7 @@ service MasterDataService {
 message StatusResponse { bool success = 1; string message = 2; }
 message GetByIdRequest { int32 id = 1; }
 message DeleteRequest { int32 id = 1; }
-message SearchRequest { string keyword = 1; int32 limit = 2; int32 offset = 3; }
+message SearchRequest { string keyword = 1; int32 limit = 2; int32 offset = 3; int32 specialty_id = 4; }
 
 message CreateSpecialtyRequest { string name = 1; string description = 2; string image = 3; string content_html = 4; string content_markdown = 5; }
 message UpdateSpecialtyRequest { int32 id = 1; string name = 2; string description = 3; string image = 4; string content_html = 5; string content_markdown = 6; }
@@ -105,10 +105,46 @@ message DoctorInfo {
 }
 message DoctorListByServiceResponse { bool success = 1; repeated DoctorInfo data = 2; }
 
-message CreateDrugRequest { string name = 1; string unit = 2; double price = 3; string description = 4; string content_html = 5; string content_markdown = 6; }
-message UpdateDrugRequest { int32 id = 1; string name = 2; string unit = 3; double price = 4; string description = 5; string content_html = 6; string content_markdown = 7; }
-message DrugResponse { int32 id = 1; string name = 2; string unit = 3; double price = 4; string description = 5; string content_html = 6; string content_markdown = 7; }
-message DrugListResponse { repeated DrugResponse data = 1; int32 total_count = 2; }
+// 1. Thêm specialty_id để lúc tạo mới Admin có thể gán khoa luôn
+message CreateDrugRequest { 
+    string name = 1; 
+    string unit = 2; 
+    double price = 3; 
+    string description = 4; 
+    string content_html = 5; 
+    string content_markdown = 6; 
+    int32 specialty_id = 7; 
+}
+
+// 2. Thêm specialty_id để lúc sửa Admin có thể đổi khoa cho thuốc
+message UpdateDrugRequest { 
+    int32 id = 1; 
+    string name = 2; 
+    string unit = 3; 
+    double price = 4; 
+    string description = 5; 
+    string content_html = 6; 
+    string content_markdown = 7; 
+    int32 specialty_id = 8; 
+}
+
+// 3. DrugResponse giữ nguyên (đã có specialty_id rồi)
+message DrugResponse { 
+    int32 id = 1; 
+    string name = 2; 
+    string unit = 3; 
+    double price = 4; 
+    string description = 5; 
+    string content_html = 6; 
+    string content_markdown = 7; 
+    int32 specialty_id = 8; 
+}
+
+// 4. Thằng này là cái vỏ bọc nên giữ nguyên logic cũ
+message DrugListResponse { 
+    repeated DrugResponse data = 1; 
+    int32 total_count = 2; 
+}
 
 message CreateAllCodeRequest { string type = 1; string key = 2; string value_vi = 3;  string value_en = 4; }
 message UpdateAllCodeRequest { int32 id = 1; string type = 2; string key = 3; string value_vi = 4;  string value_en = 5; }

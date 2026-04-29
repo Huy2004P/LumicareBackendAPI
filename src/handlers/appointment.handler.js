@@ -16,10 +16,7 @@ module.exports = {
   GetListPatientForDoctor: (call, callback) => {
     safeCall(callback, async () => {
       const { doctor_id, date } = call.request;
-      
       const data = await appointmentService.getListPatient(doctor_id, date);
-      
-      // Map dữ liệu từ DB sang định dạng Proto
       const mappedData = data.map(r => ({
         booking_id: r.booking_id,
         patient_id: r.patient_id,
@@ -30,8 +27,9 @@ module.exports = {
         reason: r.reason,
         status: r.status,
         gender: r.gender,
-        birthday: r.birthday ? r.birthday.toString() : "", // Convert ngày tháng sang string
-        address: r.address
+        birthday: r.birthday ? r.birthday.toString() : "",
+        address: r.address,
+        service_name: r.service_name || "Khám trực tiếp" 
       }));
 
       return { success: true, message: "OK", data: mappedData };
@@ -50,25 +48,25 @@ module.exports = {
   // 3. Hoàn tất khám bệnh
   FinishAppointment: (call, callback) => {
     safeCall(callback, async () => {
-      // --- ĐOẠN KIỂM TRA DỮ LIỆU ---
-      console.log("-----------------------------------------");
-      console.log(">>> [DEBUG] Dữ liệu nhận từ Client:", JSON.stringify(call.request, null, 2));
-      
-      if (!call.request.treatments || call.request.treatments.length === 0) {
-        console.warn("⚠️ [CẢNH BÁO] Mảng treatments gửi xuống bị RỖNG hoặc không có!");
-      } else {
-        console.log("✅ [DEBUG] Mảng treatments có:", call.request.treatments.length, "phần tử");
-      }
-      console.log("-----------------------------------------");
-      // ----------------------------
-
-      // Truyền nguyên cục request sang service xử lý
       const recordId = await appointmentService.finishAppointment(call.request);
-      return { 
-        success: true, 
-        message: "Lưu bệnh án và đơn thuốc thành công!", 
-        record_id: recordId 
+      return {
+        success: true,
+        message: "Lưu bệnh án và đơn thuốc thành công!",
+        record_id: recordId
       };
     });
-  }
+  },
+
+  // 4. Lấy lịch sử bệnh án
+  GetMedicalHistory: (call, callback) => {
+    safeCall(callback, async () => {
+      const { patient_id, doctor_id, keyword } = call.request;
+      const history = await appointmentService.getMedicalHistory(patient_id, doctor_id, keyword);
+      return {
+        success: true,
+        message: "Lấy lịch sử bệnh án thành công!",
+        data: history
+      };
+    });
+  },
 };

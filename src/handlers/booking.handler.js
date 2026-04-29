@@ -1,36 +1,25 @@
 const bookingService = require("../services/booking.service");
 
 module.exports = {
-  // 1. Đặt lịch khám mới
+  //Tạo lịch đặt mới
   CreateBooking: async (call, callback) => {
     try {
-      // call.request lúc này đã có .location_id từ Proto truyền xuống
-      // Service sẽ tự xử lý việc convert userId sang patientId và locationId sang chuỗi address
-      console.log("=======================================");
-  console.log("📥 [gRPC] NHẬN REQUEST ĐẶT LỊCH");
-  console.log("Dữ liệu chi tiết:", JSON.stringify(call.request, null, 2));
-  console.log("=======================================");
       const id = await bookingService.createBooking(call.request);
-      
       callback(null, { 
         success: true, 
         message: "Đặt lịch khám thành công!", 
         booking_id: id 
       });
     } catch (e) { 
-      console.error(">>> [Booking Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   },
-
+  //Lấy lịch sử đặt lịch
   GetBookingHistory: async (call, callback) => {
     try {
-      const userId = call.request.user_id || call.request.patient_id || call.request.patientId || call.request.userId;
-
+      const userId = call.request.patient_id || call.request.userId;
       if (!userId) throw new Error("Thiếu ID người dùng!");
-
       const res = await bookingService.getHistory(userId);
-
       const formattedData = res.map(i => {
         return {
           id: i.id,
@@ -44,12 +33,14 @@ module.exports = {
           price: parseFloat(i.price || 0),
           address: i.address || i.address_detail || "",
           cancel_reason: i.cancel_reason || "",
-          // 🎯 MỚI THÊM: Trả về thông tin thanh toán cho Flutter
           payment_method: i.payment_method || "PAY1", 
-          payment_status: i.payment_status || 0
+          payment_status: i.payment_status || 0,
+          doctor_id: i.doctor_id,
+        patient_id: i.patient_id,
+        clinic_id: i.clinic_id || 0,
+        service_id: i.service_id || 0
         };
       });
-
       callback(null, { 
         success: true, 
         message: "Lấy lịch sử thành công",
@@ -60,40 +51,33 @@ module.exports = {
     }
   },
 
-  // 3. Hủy đơn hàng (Bệnh nhân thực hiện)
+  //Huỷ đặt lịch
   CancelBooking: async (call, callback) => {
     try {
-      const bookingId = call.request.booking_id || call.request.bookingId; 
-      const userId = call.request.patient_id || call.request.patientId;
+      const bookingId = call.request.booking_id; 
+      const userId = call.request.patient_id;
       const reason = call.request.reason || "Người dùng không cung cấp lý do";
-      
       await bookingService.cancelBooking(bookingId, userId, reason);
-      
       callback(null, { 
         success: true, 
         message: "Đã hủy lịch khám thành công!",
         booking_id: bookingId 
       });
     } catch (e) { 
-      console.error(">>> [Cancel Booking Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   },
-
-  // 4. Xóa đơn hàng (Admin/Xóa ảo)
+  //Xoá đặt lịch
   DeleteBooking: async (call, callback) => {
     try {
-      const bookingId = call.request.booking_id || call.request.bookingId;
-      s
+      const bookingId = call.request.booking_id;
       await bookingService.deleteBooking(bookingId);
-      
       callback(null, { 
         success: true, 
         message: "Đã xóa lịch sử đơn hàng thành công!", 
         booking_id: bookingId 
       });
     } catch (e) { 
-      console.error(">>> [Delete Booking Handler Error]:", e.message);
       callback({ code: 13, message: e.message }); 
     }
   }

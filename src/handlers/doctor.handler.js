@@ -24,37 +24,39 @@ const mapToProto = (d) => ({
   clinicName: String(d.clinic_name || "").normalize('NFC'),
   active: d.active === 1,
   specialtyId: parseInt(d.specialty_id) || 0,
-  rating: parseFloat(d.rating) || 5.0 // 🎯 THÊM DÒNG NÀY: Map vào Proto
+  rating: parseFloat(d.rating) || 5.0,
+  roomId: parseInt(d.room_id) || 0
 });
 
 module.exports = {
+  //tạo thông tin bác sĩ
   CreateDoctor: (call, callback) => {
     safeCall(callback, async () => {
       const newDoctor = await doctorService.createDoctor(call.request);
       return mapToProto(newDoctor);
     });
   },
-
+  //Lấy danh sách bác sĩ
   GetAllDoctors: (call, callback) => {
     safeCall(callback, async () => {
       const doctors = await doctorService.getAllDoctors(call.request);
       return { doctors: doctors.map(mapToProto) };
     });
   },
-
+  //Lấy chi tiết bác sĩ
   GetDoctorById: (call, callback) => {
     safeCall(callback, async () => {
       const doctor = await doctorService.getDoctorById(call.request.id);
       return mapToProto(doctor);
     });
   },
-
+  //Gán dịch vụ cho bác sĩ
   AssignServiceToDoctor: (call, callback) => {
     safeCall(callback, async () => {
       return await doctorService.assignServicesToDoctor(call.request);
     });
   },
-
+  //Lấy dịch vụ của bác sĩ
   GetDoctorServices: (call, callback) => {
     safeCall(callback, async () => {
       const result = await doctorService.getDoctorServices(call.request.id);
@@ -71,7 +73,7 @@ module.exports = {
       };
     });
   },
-
+  //Search bác sĩ
   GlobalSearch: (call, callback) => {
     safeCall(callback, async () => {
       const { query, limit } = call.request;
@@ -88,17 +90,30 @@ module.exports = {
       };
     });
   },
-
+  //Cập nhật thông tin bác sĩ
   UpdateDoctor: (call, callback) => {
     safeCall(callback, async () => {
       const updatedDoctor = await doctorService.updateDoctor(call.request);
       return mapToProto(updatedDoctor);
     });
   },
-
+  //Xoá bác sĩ
   DeleteDoctor: (call, callback) => {
     safeCall(callback, async () => {
       return await doctorService.deleteDoctor(call.request.id);
+    });
+  },
+  //Thay đổi mật khẩu bác sĩ
+  UpdateDoctorPassword: (call, callback) => {
+    safeCall(callback, async () => {
+      const { id, newPassword } = call.request;
+      return await doctorService.updateDoctorPassword(id, newPassword);
+    });
+  },
+  //Reset mật khẩu bác sĩ
+  ResetDoctorPassword: (call, callback) => {
+    safeCall(callback, async () => {
+      return await doctorService.resetDoctorPassword(call.request.id);
     });
   }
 };
