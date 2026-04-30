@@ -17,116 +17,104 @@ const transporter = nodemailer.createTransport({
 const renderAppleTemplate = (title, message, badge) => {
   return `
   <div style="
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-    background:#f5f5f7;
-    padding:40px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background-color: #f5f5f7; /* {colors.canvas-parchment} */
+    padding: 64px 16px;
+    margin: 0;
   ">
-
     <div style="
-      max-width:520px;
-      margin:0 auto;
-      background:#ffffff;
-      border-radius:18px;
-      overflow:hidden;
-      border:1px solid #e0e0e0;
+      max-width: 560px;
+      margin: 0 auto;
+      background-color: #ffffff; /* {colors.canvas} */
+      border-radius: 18px; /* {rounded.lg} */
+      overflow: hidden;
+      /* Loại bỏ drop-shadow theo triết lý: shadow chỉ dành cho sản phẩm vật lý */
+      border: 1px solid #e0e0e0; /* {colors.hairline} */
     ">
 
-      <!-- HEADER -->
       <div style="
-        background:#000;
-        padding:14px 20px;
-        text-align:center;
+        background-color: #000000; /* {colors.surface-black} */
+        padding: 12px 20px;
+        text-align: center;
       ">
         <span style="
-          color:#fff;
-          font-size:14px;
-          letter-spacing:0.5px;
-          font-weight:600;
+          color: #ffffff;
+          font-size: 12px; /* {typography.nav-link} */
+          font-weight: 400;
+          letter-spacing: -0.12px;
         ">
           Lumicare
         </span>
       </div>
 
-      <!-- CONTENT -->
-      <div style="
-        padding:48px 32px;
-        text-align:center;
-      ">
-
-        <div style="
-          font-size:28px;
-          font-weight:600;
-          color:#1d1d1f;
-          letter-spacing:-0.3px;
-          margin-bottom:12px;
+      <div style="padding: 64px 32px; text-align: center;">
+        
+        <h1 style="
+          font-size: 28px; /* {typography.lead} */
+          font-weight: 600; /* Apple headlines use 600 */
+          color: #1d1d1f; /* {colors.ink} */
+          margin: 0 0 16px 0;
+          letter-spacing: -0.374px; /* Signature "Apple tight" tracking */
+          line-height: 1.14;
         ">
           ${title}
-        </div>
+        </h1>
 
-        <div style="
-          font-size:17px;
-          line-height:1.5;
-          color:#1d1d1f;
-          font-weight:400;
-          margin-bottom:28px;
+        <p style="
+          font-size: 17px; /* Apple runs paragraph at 17px */
+          font-weight: 400;
+          line-height: 1.47; /* Standard editorial leading */
+          color: #1d1d1f;
+          margin: 0 0 32px 0;
+          letter-spacing: -0.374px;
         ">
           ${message}
-        </div>
+        </p>
 
         ${
           badge
             ? `
-          <div style="margin:28px 0;">
-            <span style="
-              display:inline-block;
-              padding:12px 22px;
-              border-radius:999px;
-              background:#0066cc;
-              color:#fff;
-              font-size:17px;
-              font-weight:500;
-              letter-spacing:2px;
+          <div style="margin: 32px 0;">
+            <div style="
+              display: inline-block;
+              padding: 14px 32px;
+              border-radius: 9999px; /* {rounded.pill} */
+              background-color: #f5f5f7; /* {colors.canvas-parchment} */
+              color: #0066cc; /* {colors.primary} - Action Blue */
+              font-size: 24px;
+              font-weight: 600;
+              letter-spacing: 4px;
+              border: 1px solid #e0e0e0;
             ">
               ${badge}
-            </span>
+            </div>
           </div>
         `
             : ""
         }
 
-        <a href="#" style="
-          display:inline-block;
-          margin-top:10px;
-          padding:12px 22px;
-          border-radius:999px;
-          background:#0066cc;
-          color:#fff;
-          text-decoration:none;
-          font-size:14px;
-          font-weight:500;
-        ">
-          Tiếp tục
-        </a>
-
         <div style="
-          margin-top:32px;
-          font-size:12px;
-          color:#6e6e73;
-          line-height:1.4;
+          margin-top: 48px;
+          padding-top: 32px;
+          border-top: 1px solid #f0f0f0;
+          font-size: 12px; /* {typography.fine-print} */
+          color: #7a7a7a; /* {colors.ink-muted-48} */
+          line-height: 1.4;
         ">
-          Email này được gửi tự động từ hệ thống Lumicare. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.
+          Email này được gửi tự động từ hệ thống bảo mật Lumicare. <br>
+          Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email để đảm bảo an toàn.
         </div>
 
       </div>
 
       <div style="
-        background:#f5f5f7;
-        padding:16px;
-        text-align:center;
-        font-size:11px;
-        color:#86868b;
+        background-color: #f5f5f7;
+        padding: 24px;
+        text-align: center;
+        font-size: 10px; /* {typography.micro-legal} */
+        color: #86868b;
       ">
-        © Lumicare System
+        © 2026 Lumicare System. Bảo lưu mọi quyền.
       </div>
 
     </div>

@@ -38,6 +38,8 @@ appExpress.get('/fake-pay/:userId', (req, res) => {
     });
     return res.send(`Đã gửi cho User ${userId} thành công! App sẽ tự nhảy trang.`);
   }
+
+  console.log("Socket.io chưa sẵn sàng");
   res.status(500).send("Lỗi: Socket.io chưa sẵn sàng");
 });
 
